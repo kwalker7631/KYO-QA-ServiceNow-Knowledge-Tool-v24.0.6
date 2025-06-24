@@ -1,5 +1,4 @@
 # KYO QA ServiceNow Excel Generator v24.0.6
-from version import VERSION
 import pandas as pd, shutil, openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
 from logging_utils import setup_logger, log_info, log_error, log_warning
