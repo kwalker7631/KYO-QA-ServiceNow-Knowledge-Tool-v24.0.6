@@ -17,7 +17,7 @@ KYO_QA_ServiceNow_Knowledge_Tool_v24.0.1/
 ├── requirements.txt
 ├── README.md
 ├── CHANGELOG.md
-├── kyo_qa_tool_app.py
+├── gui/main.py
 ├── logging_utils.py
 ├── ocr_utils.py
 ├── ai_extractor.py
@@ -51,7 +51,7 @@ This tool extracts model info, QA/SB numbers, and descriptions from Kyocera QA/s
 
 | File                  | Role                                               |
 |------------------------|----------------------------------------------------|
-| `kyo_qa_tool_app.py`   | Main controller and orchestrator                  |
+| `gui/main.py`   | Main controller and orchestrator                  |
 | `processing_engine.py` | Coordinates the multi-step processing pipeline    |
 | `ocr_utils.py`         | Converts PDF scans to text using OCR              |
 | `ai_extractor.py`      | Extracts structured data using regex/NLP          |
