@@ -1,6 +1,6 @@
 import openpyxl
 from pathlib import Path
-from excel_generator import generate_excel
+from kyo_tool.output import generate_excel
 
 
 def test_generate_excel_no_template(tmp_path):

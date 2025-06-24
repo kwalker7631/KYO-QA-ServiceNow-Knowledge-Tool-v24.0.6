@@ -1,5 +1,5 @@
 # KYO QA ServiceNow - Smart Python Launcher with Efficient Setup
-from version import VERSION
+from kyo_tool.version import VERSION
 import argparse
 
 import sys
@@ -9,7 +9,12 @@ import shutil
 import time
 import threading
 from pathlib import Path
-from logging_utils import setup_logger, log_info, log_error, log_warning
+from kyo_tool.utils.logging_utils import (
+    setup_logger,
+    log_info,
+    log_error,
+    log_warning,
+)
 
 logger = setup_logger("startup")
 

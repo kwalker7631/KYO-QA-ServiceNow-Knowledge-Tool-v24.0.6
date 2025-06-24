@@ -1,5 +1,5 @@
 # KYO QA ServiceNow Logging Utilities
-from version import VERSION
+from kyo_tool.version import VERSION
 
 import logging
 import sys
@@ -8,7 +8,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 # Create logs directory
-LOG_DIR = Path(__file__).parent / "logs"
+LOG_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
 def setup_logger(name: str, console_output=True, max_file_size=10*1024*1024) -> logging.Logger:

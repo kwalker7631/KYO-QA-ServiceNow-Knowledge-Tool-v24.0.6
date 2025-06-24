@@ -1,5 +1,5 @@
 # KYO QA ServiceNow Tool - Clean, Bug-Resistant Version
-from version import VERSION
+from kyo_tool.version import VERSION
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -12,9 +12,13 @@ import re
 
 # --- Safe Import with Fallbacks ---
 try:
-    from processing_engine import process_files, process_pdf_list
-    from file_utils import ensure_folders, cleanup_temp_files, open_file
-    from logging_utils import (
+    from kyo_tool.app.processing_engine import process_files, process_pdf_list
+    from kyo_tool.utils.file_utils import (
+        ensure_folders,
+        cleanup_temp_files,
+        open_file,
+    )
+    from kyo_tool.utils.logging_utils import (
         setup_logger,
         log_info,
         log_error,
