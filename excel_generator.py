@@ -1,7 +1,9 @@
 # KYO QA ServiceNow Excel Generator v24.0.6
 import pandas as pd, shutil, openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, PatternFill
+from openpyxl.formatting.rule import FormulaRule
 from logging_utils import setup_logger, log_info, log_error, log_warning
 from custom_exceptions import ExcelGenerationError
 
@@ -12,20 +14,15 @@ REVIEW_FILL = PatternFill(start_color="FFF3BF", end_color="FFF3BF", fill_type="s
 
 def _apply_formatting(sheet: openpyxl.worksheet.worksheet.Worksheet):
     """Apply default formatting to the given worksheet."""
-    # Ensure columns have a reasonable width
-    for cell in sheet[1]:
-        col_dim = sheet.column_dimensions[cell.column_letter]
-        if not col_dim.width or col_dim.width <= 8.43:
-            col_dim.width = max(len(str(cell.value)) + 2, 15)
-
-    # Determine index of needs_review column if present
     review_idx = None
+    status_idx = None
     for idx, cell in enumerate(sheet[1], start=1):
-        if str(cell.value).lower() == "needs_review":
+        header = str(cell.value).lower()
+        if header == "needs_review":
             review_idx = idx
-            break
+        if header == "status":
+            status_idx = idx
 
-    # Apply wrap text and conditional fill for each data row
     for row in sheet.iter_rows(min_row=2):
         for cell in row:
             cell.alignment = Alignment(wrap_text=True)
@@ -33,6 +30,24 @@ def _apply_formatting(sheet: openpyxl.worksheet.worksheet.Worksheet):
         if review_idx and str(row[review_idx - 1].value).lower() in {"true", "needs_review", "1"}:
             for cell in row:
                 cell.fill = REVIEW_FILL
+
+    for column in sheet.columns:
+        max_len = max(len(str(c.value)) if c.value is not None else 0 for c in column)
+        sheet.column_dimensions[column[0].column_letter].width = max(max_len + 2, 15)
+
+    if status_idx:
+        status_letter = get_column_letter(status_idx)
+        last_letter = get_column_letter(sheet.max_column)
+        data_range = f"A2:{last_letter}{sheet.max_row}"
+        formula = (
+            f'OR(${status_letter}2="needs_review",'
+            f'${status_letter}2="failed",'
+            f'${status_letter}2="needs_ocr")'
+        )
+        sheet.conditional_formatting.add(
+            data_range,
+            FormulaRule(formula=[formula], fill=REVIEW_FILL)
+        )
 
 def _use_template_excel(df, output_path, template_path):
     """Write DataFrame to an Excel file based on an existing template."""

@@ -22,3 +22,16 @@ def test_generate_excel_no_template_returns_path(tmp_path):
     wb = openpyxl.load_workbook(out_file)
     sheet = wb.active
     assert sheet["A2"].alignment.wrap_text
+
+
+def test_column_width_and_conditional_formatting(tmp_path):
+    data = [
+        {"status": "needs_review", "foo": "this is a very long line of text"},
+        {"status": "failed", "foo": "short"},
+    ]
+    out_file = tmp_path / "format.xlsx"
+    generate_excel(data, out_file, None)
+    wb = openpyxl.load_workbook(out_file)
+    sheet = wb.active
+    assert sheet.column_dimensions["B"].width > 15
+    assert len(sheet.conditional_formatting) > 0
