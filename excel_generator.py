@@ -9,30 +9,50 @@ logger = setup_logger("excel_generator")
 
 # Default cell styling
 REVIEW_FILL = PatternFill(start_color="FFF3BF", end_color="FFF3BF", fill_type="solid")
+ERROR_FILL = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+SUCCESS_FILL = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
 
 def _apply_formatting(sheet: openpyxl.worksheet.worksheet.Worksheet):
-    """Apply default formatting to the given worksheet."""
-    # Ensure columns have a reasonable width
-    for cell in sheet[1]:
-        col_dim = sheet.column_dimensions[cell.column_letter]
-        if not col_dim.width or col_dim.width <= 8.43:
-            col_dim.width = max(len(str(cell.value)) + 2, 15)
+    """Auto-fit columns, wrap text, and apply row highlights."""
+    # Track max character length per column for auto-fit
+    max_width = {}
 
-    # Determine index of needs_review column if present
+    status_idx = None
     review_idx = None
     for idx, cell in enumerate(sheet[1], start=1):
-        if str(cell.value).lower() == "needs_review":
+        header = str(cell.value).lower()
+        if header == "needs_review":
             review_idx = idx
-            break
+        elif header == "status":
+            status_idx = idx
 
-    # Apply wrap text and conditional fill for each data row
-    for row in sheet.iter_rows(min_row=2):
+    # Examine all cells to calculate optimal column widths
+    for row in sheet.iter_rows():
         for cell in row:
-            cell.alignment = Alignment(wrap_text=True)
+            text = str(cell.value) if cell.value is not None else ""
+            letter = cell.column_letter
+            max_width[letter] = max(len(text), max_width.get(letter, 0))
+            if cell.row > 1:
+                cell.alignment = Alignment(wrap_text=True)
 
+    for letter, length in max_width.items():
+        sheet.column_dimensions[letter].width = min(max(length + 2, 15), 50)
+
+    # Apply conditional coloring for each data row
+    for row in sheet.iter_rows(min_row=2):
+        row_fill = None
         if review_idx and str(row[review_idx - 1].value).lower() in {"true", "needs_review", "1"}:
+            row_fill = REVIEW_FILL
+        elif status_idx:
+            status_value = str(row[status_idx - 1].value).lower()
+            if status_value in {"error", "failed"}:
+                row_fill = ERROR_FILL
+            elif status_value in {"completed", "ok", "success"}:
+                row_fill = SUCCESS_FILL
+
+        if row_fill:
             for cell in row:
-                cell.fill = REVIEW_FILL
+                cell.fill = row_fill
 
 def _use_template_excel(df, output_path, template_path):
     """Write DataFrame to an Excel file based on an existing template."""

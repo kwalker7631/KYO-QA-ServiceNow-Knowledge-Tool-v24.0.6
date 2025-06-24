@@ -22,3 +22,14 @@ def test_generate_excel_no_template_returns_path(tmp_path):
     wb = openpyxl.load_workbook(out_file)
     sheet = wb.active
     assert sheet["A2"].alignment.wrap_text
+
+
+def test_generate_excel_applies_status_fill_and_autofit(tmp_path):
+    long_text = "this is a very long sentence for width"
+    data = [{"A": long_text, "status": "completed"}]
+    out_file = tmp_path / "status.xlsx"
+    generate_excel(data, out_file, None)
+    wb = openpyxl.load_workbook(out_file)
+    sheet = wb.active
+    assert sheet["A2"].fill.start_color.rgb == "00C6EFCE"
+    assert sheet.column_dimensions["A"].width > 30
