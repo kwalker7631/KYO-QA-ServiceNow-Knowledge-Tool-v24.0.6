@@ -1,10 +1,38 @@
 # KYO QA ServiceNow Excel Generator v24.0.6
 import pandas as pd, shutil, openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.styles import Alignment, PatternFill
 from logging_utils import setup_logger, log_info, log_error, log_warning
 from custom_exceptions import ExcelGenerationError
 
 logger = setup_logger("excel_generator")
+
+# Default cell styling
+REVIEW_FILL = PatternFill(start_color="FFF3BF", end_color="FFF3BF", fill_type="solid")
+
+def _apply_formatting(sheet: openpyxl.worksheet.worksheet.Worksheet):
+    """Apply default formatting to the given worksheet."""
+    # Ensure columns have a reasonable width
+    for cell in sheet[1]:
+        col_dim = sheet.column_dimensions[cell.column_letter]
+        if not col_dim.width or col_dim.width <= 8.43:
+            col_dim.width = max(len(str(cell.value)) + 2, 15)
+
+    # Determine index of needs_review column if present
+    review_idx = None
+    for idx, cell in enumerate(sheet[1], start=1):
+        if str(cell.value).lower() == "needs_review":
+            review_idx = idx
+            break
+
+    # Apply wrap text and conditional fill for each data row
+    for row in sheet.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(wrap_text=True)
+
+        if review_idx and str(row[review_idx - 1].value).lower() in {"true", "needs_review", "1"}:
+            for cell in row:
+                cell.fill = REVIEW_FILL
 
 def _use_template_excel(df, output_path, template_path):
     try:
@@ -13,6 +41,7 @@ def _use_template_excel(df, output_path, template_path):
         sheet = workbook["Page 1"] if "Page 1" in workbook.sheetnames else workbook.active
         for row in dataframe_to_rows(df, index=False, header=False):
             sheet.append(row)
+        _apply_formatting(sheet)
         workbook.save(output_path)
         log_info(logger, f"Successfully saved data to {output_path}")
         return str(output_path)
