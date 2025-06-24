@@ -6,6 +6,9 @@
 - **Python 3.11.x (64-bit):** [Download Python 3.11.9 Windows Installer](https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe)
 - **Tesseract OCR:** [Tesseract Windows Installer (UB Mannheim)](https://github.com/UB-Mannheim/tesseract/wiki)
 - **Optional:** All dependencies listed in `requirements.txt` (auto-installed if you run `start_tool.py`)
+- **Extract module:** Ensure the `/extract/` folder is present. If your copy
+  doesn't include it, install the private `kyo-qa-extract` package or copy the
+  folder from another release.
 
 ### 2. Folder Structure
 KYO_QA_ServiceNow_Knowledge_Tool_v24.0.1/
