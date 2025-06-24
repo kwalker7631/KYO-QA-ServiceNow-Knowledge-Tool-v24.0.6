@@ -906,10 +906,11 @@ class KyoQAToolApp(tk.Tk):
                 self.after(0, lambda: messagebox.showerror("Processing Failed", "No output file was created."))
 
         except Exception as e:
-            log_exception(logger, f"Processing error: {e}")
-            self.after(0, lambda: self.safe_log_message(f"CRITICAL ERROR: {e}", "error"))
-            create_failure_log("Critical processing failure", str(e))
-            self.after(0, lambda: messagebox.showerror("Critical Error", f"Error: {e}"))
+            error_msg = str(e)
+            log_exception(logger, f"Processing error: {error_msg}")
+            self.after(0, lambda m=error_msg: self.safe_log_message(f"CRITICAL ERROR: {m}", "error"))
+            create_failure_log("Critical processing failure", error_msg)
+            self.after(0, lambda m=error_msg: messagebox.showerror("Critical Error", f"Error: {m}"))
         
         finally:
             # Reset UI state
