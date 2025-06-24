@@ -203,7 +203,7 @@ def check_existing_virtualenv():
             
     except Exception as e:
         spinner.stop()
-        print_warning(f"Virtual environment validation error - will recreate")
+        print_warning("Virtual environment validation error - will recreate")
         log_warning(logger, f"Virtual environment validation error: {e}")
         return False
 
