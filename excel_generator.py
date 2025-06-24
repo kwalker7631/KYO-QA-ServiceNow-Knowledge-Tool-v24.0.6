@@ -12,11 +12,16 @@ REVIEW_FILL = PatternFill(start_color="FFF3BF", end_color="FFF3BF", fill_type="s
 
 def _apply_formatting(sheet: openpyxl.worksheet.worksheet.Worksheet):
     """Apply default formatting to the given worksheet."""
-    # Ensure columns have a reasonable width
-    for cell in sheet[1]:
-        col_dim = sheet.column_dimensions[cell.column_letter]
-        if not col_dim.width or col_dim.width <= 8.43:
-            col_dim.width = max(len(str(cell.value)) + 2, 15)
+    # Ensure columns have a reasonable width based on all cell contents
+    for col_cells in sheet.columns:
+        column_letter = col_cells[0].column_letter
+        col_dim = sheet.column_dimensions[column_letter]
+        max_length = 0
+        for cell in col_cells:
+            value = str(cell.value) if cell.value is not None else ""
+            if len(value) > max_length:
+                max_length = len(value)
+        col_dim.width = max(max_length + 2, 15)
 
     # Determine index of needs_review column if present
     review_idx = None
