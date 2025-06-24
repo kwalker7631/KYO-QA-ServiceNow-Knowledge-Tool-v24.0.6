@@ -1,4 +1,4 @@
-# KYO QA ServiceNow Knowledge Tool v24.0.1
+# KYO QA ServiceNow Knowledge Tool v24.0.6
 
 ## How to Set Up and Run (Modular, Fully Logged)
 
@@ -8,7 +8,7 @@
 - **Optional:** All dependencies listed in `requirements.txt` (auto-installed if you run `start_tool.py`)
 
 ### 2. Folder Structure
-KYO_QA_ServiceNow_Knowledge_Tool_v24.0.1/
+KYO_QA_ServiceNow_Knowledge_Tool_v24.0.6/
 ├── run_tool.bat
 ├── start_tool.py
 ├── requirements.txt
@@ -26,7 +26,7 @@ KYO_QA_ServiceNow_Knowledge_Tool_v24.0.1/
 ├── logs/(auto-created)
 ├── output/(auto-created)
 └── venv/(auto-created)
-# KYO QA ServiceNow Knowledge Tool v24.0.1 – Directory Breakdown
+# KYO QA ServiceNow Knowledge Tool v24.0.6 – Directory Breakdown
 
 This tool extracts model info, QA/SB numbers, and descriptions from Kyocera QA/service PDFs using OCR + pattern recognition. It outputs a ServiceNow-ready Excel file and logs every step. No PDFs are retained.
 
@@ -95,16 +95,15 @@ This tool extracts model info, QA/SB numbers, and descriptions from Kyocera QA/s
     - Logs and output are saved in `/logs/` and `/output/` folders.
 
 ### Install Dependencies
-If you plan to run or test the tool locally, first install the required Python
-packages with the helper script:
+If you plan to run or test the tool locally, install the Python packages listed in
+`requirements.txt`:
 
 ```bash
-cd KYO_QA_ServiceNow_Knowledge_Tool_v24.0.1
-./scripts/setup_env.sh
+cd KYO_QA_ServiceNow_Knowledge_Tool_v24.0.6
+python -m pip install -r requirements.txt
 ```
 
-The test suite relies on these packages, so make sure to run the script before
-executing `pytest`.
+The test suite relies on these packages, so install them before executing `pytest`.
 
 ### Development and Testing
 After installing the dependencies, run the test suite with:
@@ -115,11 +114,11 @@ pytest -q
 
 The tests rely on `pandas`, `PyMuPDF`, and the rest of the packages listed in
 `requirements.txt`. If `PyMuPDF` is missing you will see import errors. As of
-v24.0.1, unused packages `xlsxwriter` and `halo` were removed to keep the
+v24.0.6, unused packages `xlsxwriter` and `halo` were removed to keep the
 environment lean.
 
 ### 4. Versioning
-- This is the modular, logging-enabled release: **v24.0.1**
+- This is the modular, logging-enabled release: **v24.0.6**
 - Each file and log is stamped with its version.
 - All updates are tracked in `CHANGELOG.md`.
 
