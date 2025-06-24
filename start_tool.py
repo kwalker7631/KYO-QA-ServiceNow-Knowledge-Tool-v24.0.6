@@ -355,7 +355,7 @@ def run_app():
     if not venv_python.exists():
         venv_python = Path(__file__).parent / "venv" / "bin" / "python3"
         
-    app_file = Path(__file__).parent / "kyo_qa_tool_app.py"
+    app_file = Path(__file__).parent / "ui" / "main_window.py"
     
     spinner = ConsoleSpinner()
     spinner.start("Starting KYO QA ServiceNow Knowledge Tool...")
