@@ -1,20 +1,33 @@
 import os
 import types
 import sys
+from pathlib import Path
+import pytest
 
-# Stub out heavy dependencies before importing the module under test
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, BASE_DIR)
+# Ensure the project root is on the path
+BASE_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(BASE_DIR))
 
-sys.modules['ocr_utils'] = types.SimpleNamespace(get_pdf_metadata=lambda x: {})
-sys.modules['data_harvesters'] = types.SimpleNamespace(identify_document_type=lambda x: '')
-sys.modules['logging_utils'] = types.SimpleNamespace(
-    setup_logger=lambda name: None,
-    log_info=lambda *args, **kwargs: None,
-    log_error=lambda *args, **kwargs: None,
-    log_warning=lambda *args, **kwargs: None,
-)
-sys.modules['config'] = types.SimpleNamespace(STANDARDIZATION_RULES={"default_author": ""})
+
+@pytest.fixture(autouse=True)
+def stub_modules(monkeypatch):
+    monkeypatch.setitem(sys.modules, 'ocr_utils', types.SimpleNamespace(get_pdf_metadata=lambda x: {}))
+    monkeypatch.setitem(sys.modules, 'data_harvesters', types.SimpleNamespace(identify_document_type=lambda x: ''))
+    monkeypatch.setitem(
+        sys.modules,
+        'logging_utils',
+        types.SimpleNamespace(
+            setup_logger=lambda name: None,
+            log_info=lambda *args, **kwargs: None,
+            log_error=lambda *args, **kwargs: None,
+            log_warning=lambda *args, **kwargs: None,
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        'config',
+        types.SimpleNamespace(STANDARDIZATION_RULES={"default_author": ""}),
+    )
 
 from ai_extractor import extract_qa_numbers, extract_models, extract_dates
 

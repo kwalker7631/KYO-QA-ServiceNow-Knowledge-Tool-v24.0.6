@@ -1,22 +1,32 @@
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 import types
+import pytest
 
-# Stub out PyMuPDF to avoid heavy dependency
-fitz_stub = types.ModuleType('fitz')
-class DummyDoc:
-    def __enter__(self):
-        return self
-    def __exit__(self, exc_type, exc, tb):
-        pass
-    @property
-    def metadata(self):
-        return {}
-    def __len__(self):
-        return 1
-fitz_stub.open = lambda *args, **kwargs: DummyDoc()
-sys.modules.setdefault('fitz', fitz_stub)
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+
+@pytest.fixture(autouse=True)
+def stub_fitz(monkeypatch):
+    """Provide a lightweight stub for the PyMuPDF module."""
+    fitz_stub = types.ModuleType('fitz')
+
+    class DummyDoc:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+        @property
+        def metadata(self):
+            return {}
+
+        def __len__(self):
+            return 1
+
+    fitz_stub.open = lambda *args, **kwargs: DummyDoc()
+    monkeypatch.setitem(sys.modules, 'fitz', fitz_stub)
 
 import ai_extractor
 
