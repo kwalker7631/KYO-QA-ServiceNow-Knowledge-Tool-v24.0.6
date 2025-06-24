@@ -13,8 +13,6 @@ def init_tesseract():
     try:
         # Try to import pytesseract
         import pytesseract
-        from PIL import Image
-        import io
         
         # Check common Windows paths
         tesseract_paths = [
@@ -34,7 +32,7 @@ def init_tesseract():
             if "tesseract" in output.lower():
                 log_info(logger, "Tesseract found in system PATH")
                 return True
-        except:
+        except Exception:
             pass
             
         log_warning(logger, "Tesseract OCR not found. Image-based OCR will be disabled.")
@@ -91,7 +89,7 @@ def extract_text_with_ocr(pdf_path: Path | str) -> str:
         import pytesseract
         from PIL import Image
         import io
-        
+
         all_text = []
         with fitz.open(pdf_path) as doc:
             for page_num, page in enumerate(doc):

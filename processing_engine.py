@@ -1,5 +1,4 @@
 # KYO QA ServiceNow Processing Engine - FINALIZED MODEL MAPPING
-import os
 import re
 import zipfile
 from pathlib import Path
@@ -8,14 +7,6 @@ from datetime import datetime, timedelta
 
 from logging_utils import setup_logger, log_info, log_error, log_warning
 # Import custom exceptions explicitly so linters know where they come from
-from custom_exceptions import (
-    QAExtractionError,
-    FileProcessingError,
-    ExcelGenerationError,
-    OCRError,
-    ZipExtractionError,
-    ConfigurationError,
-)
 from file_utils import get_temp_dir, cleanup_temp_files, is_pdf, is_zip, save_txt
 from ocr_utils import extract_text_from_pdf
 from extract.ai_extractor import QAExtractor

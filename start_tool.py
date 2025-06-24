@@ -277,7 +277,7 @@ def check_and_install_requirements():
                 )
                 if result.returncode != 0:
                     missing_packages.append(package)
-            except:
+            except Exception:
                 missing_packages.append(package)
         
         if not missing_packages:

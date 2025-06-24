@@ -190,7 +190,7 @@ class SafeColorSpinnerCanvas(tk.Canvas):
         if self._after_id:
             try:
                 self.after_cancel(self._after_id)
-            except:
+            except Exception:
                 pass
             self._after_id = None
 
@@ -381,7 +381,7 @@ class KyoQAToolApp(tk.Tk):
             try:
                 self.attributes("-fullscreen", True)
                 self.fullscreen = True
-            except:
+            except Exception:
                 self.state('zoomed')
                 self.fullscreen = False
             
@@ -391,7 +391,7 @@ class KyoQAToolApp(tk.Tk):
                 icon_path = base_path / "kyo_icon.ico"
                 if icon_path.exists():
                     self.iconbitmap(icon_path)
-            except:
+            except Exception:
                 pass  # Continue without icon
                 
         except Exception as e:
@@ -589,11 +589,19 @@ class KyoQAToolApp(tk.Tk):
             
             # Configure text tags for colors
             try:
-                self.log_text.tag_configure("success", foreground=BRAND_COLORS["success"])
-                self.log_text.tag_configure("warning", foreground=BRAND_COLORS["warning"])
-                self.log_text.tag_configure("error", foreground=BRAND_COLORS["error"])
-                self.log_text.tag_configure("info", foreground=BRAND_COLORS["info"])
-            except:
+                self.log_text.tag_configure(
+                    "success", foreground=BRAND_COLORS["success"]
+                )
+                self.log_text.tag_configure(
+                    "warning", foreground=BRAND_COLORS["warning"]
+                )
+                self.log_text.tag_configure(
+                    "error", foreground=BRAND_COLORS["error"]
+                )
+                self.log_text.tag_configure(
+                    "info", foreground=BRAND_COLORS["info"]
+                )
+            except Exception:
                 pass  # Continue without colored tags
                 
         except Exception as e:
@@ -684,7 +692,7 @@ class KyoQAToolApp(tk.Tk):
                     self.state('normal')
                 else:
                     self.state('zoomed')
-            except:
+            except Exception:
                 pass
 
     def on_closing(self):
@@ -849,14 +857,14 @@ class KyoQAToolApp(tk.Tk):
                     if match and hasattr(self, 'progress_frame'):
                         current, total = int(match.group(1)), int(match.group(2))
                         self.after(0, lambda: self.progress_frame.update_progress(current, total, msg))
-                except:
+                except Exception:
                     pass
 
             def ocr_cb(is_active):
                 try:
                     if hasattr(self, 'progress_frame'):
                         self.after(0, lambda: self.progress_frame.set_ocr_active(is_active))
-                except:
+                except Exception:
                     pass
 
             # Process files
@@ -867,7 +875,7 @@ class KyoQAToolApp(tk.Tk):
                                    if f.lower().endswith((".pdf", ".zip")))
                     if hasattr(self, 'progress_frame'):
                         self.after(0, lambda: self.progress_frame.show(file_count))
-                except:
+                except Exception:
                     file_count = 0
                 
                 self.result_file, review_files, fail_count = process_files(
@@ -937,7 +945,7 @@ def create_splash_screen():
             grad_frame = SafeGradientFrame(splash, 
                 BRAND_COLORS["secondary_purple"], BRAND_COLORS["header_bg"])
             grad_frame.pack(fill="both", expand=True)
-        except:
+        except Exception:
             # Fallback to solid color
             grad_frame = tk.Frame(splash, bg=BRAND_COLORS["header_bg"])
             grad_frame.pack(fill="both", expand=True)
@@ -965,9 +973,9 @@ def create_splash_screen():
             spinner = SafeColorSpinnerCanvas(content_frame, width=80, height=80, 
                                            bg=grad_frame.cget("bg"))
             spinner.pack(pady=20)
-        except:
+        except Exception:
             # Fallback to simple label
-            spinner = tk.Label(content_frame, text="Loading...", 
+            spinner = tk.Label(content_frame, text="Loading...",
                              bg=grad_frame.cget("bg"), fg=BRAND_COLORS["header_fg"])
             spinner.pack(pady=20)
         

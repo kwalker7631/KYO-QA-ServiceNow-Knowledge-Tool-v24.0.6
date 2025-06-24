@@ -1,5 +1,7 @@
 # KYO QA ServiceNow Excel Generator v24.0.6
-import pandas as pd, shutil, openpyxl
+import pandas as pd
+import shutil
+import openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import Alignment, PatternFill
 from logging_utils import setup_logger, log_info, log_error, log_warning
@@ -66,7 +68,9 @@ def _create_new_excel(df, output_path):
 
 def generate_excel(all_results, output_path, template_path):
     try:
-        if not all_results: raise ExcelGenerationError("No data to generate.")
+        if not all_results:
+            raise ExcelGenerationError("No data to generate.")
+
         df = pd.DataFrame(all_results)
         
         if template_path:

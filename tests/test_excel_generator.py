@@ -1,6 +1,7 @@
 import openpyxl
 from pathlib import Path
 from excel_generator import generate_excel
+from custom_exceptions import ExcelGenerationError
 
 
 def test_generate_excel_no_template(tmp_path):
@@ -22,3 +23,12 @@ def test_generate_excel_no_template_returns_path(tmp_path):
     wb = openpyxl.load_workbook(out_file)
     sheet = wb.active
     assert sheet["A2"].alignment.wrap_text
+
+
+def test_generate_excel_no_data_raises(tmp_path):
+    out_file = tmp_path / "out.xlsx"
+    try:
+        generate_excel([], out_file, None)
+    except ExcelGenerationError:
+        return
+    assert False, "ExcelGenerationError not raised"
