@@ -1,5 +1,4 @@
 # KYO QA ServiceNow Processing Engine - FINALIZED MODEL MAPPING
-from version import VERSION
 import os
 import re
 import zipfile

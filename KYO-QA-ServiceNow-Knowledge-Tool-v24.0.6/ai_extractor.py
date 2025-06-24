@@ -1,5 +1,4 @@
 # KYO QA ServiceNow AI Extractor - SYNTAX FIXED VERSION
-from version import VERSION
 import re
 from datetime import datetime
 from logging_utils import setup_logger, log_info, log_error, log_warning
