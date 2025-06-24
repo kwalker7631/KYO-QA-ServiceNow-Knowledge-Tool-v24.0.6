@@ -1,5 +1,4 @@
 # KYO QA ServiceNow Configuration for Adaptable Standardization
-from version import VERSION
 
 # QA Number Extraction Patterns
 QA_NUMBER_PATTERNS = [
