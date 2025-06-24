@@ -6,8 +6,11 @@ import sys
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, BASE_DIR)
 
+_orig_ocr_utils = sys.modules.get('ocr_utils')
+_orig_data_harvesters = sys.modules.get('data_harvesters')
 sys.modules['ocr_utils'] = types.SimpleNamespace(get_pdf_metadata=lambda x: {})
 sys.modules['data_harvesters'] = types.SimpleNamespace(identify_document_type=lambda x: '')
+_orig_logging_utils = sys.modules.get('logging_utils')
 sys.modules['logging_utils'] = types.SimpleNamespace(
     setup_logger=lambda name: None,
     log_info=lambda *args, **kwargs: None,
@@ -17,6 +20,19 @@ sys.modules['logging_utils'] = types.SimpleNamespace(
 sys.modules['config'] = types.SimpleNamespace(STANDARDIZATION_RULES={"default_author": ""})
 
 from ai_extractor import extract_qa_numbers, extract_models, extract_dates
+
+if _orig_logging_utils is not None:
+    sys.modules['logging_utils'] = _orig_logging_utils
+else:
+    del sys.modules['logging_utils']
+if _orig_ocr_utils is not None:
+    sys.modules['ocr_utils'] = _orig_ocr_utils
+else:
+    del sys.modules['ocr_utils']
+if _orig_data_harvesters is not None:
+    sys.modules['data_harvesters'] = _orig_data_harvesters
+else:
+    del sys.modules['data_harvesters']
 
 SAMPLE_TEXT = """
 Service Bulletin

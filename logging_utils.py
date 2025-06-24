@@ -80,6 +80,20 @@ def log_critical(logger: logging.Logger, message: str) -> None:
     """Log a critical message."""
     logger.critical(message)
 
+def log_safe(logger: logging.Logger, message: str, level: str = "info", max_length: int = 250) -> None:
+    """Log a message safely by stripping newlines and truncating large blocks.
+
+    Args:
+        logger: Logger instance to use.
+        message: The text to log.
+        level: Logging level name (default ``info``).
+        max_length: Maximum characters to log before truncating.
+    """
+    clean = message.replace("\n", " ").replace("\r", " ")
+    if len(clean) > max_length:
+        clean = clean[:max_length] + "..."
+    getattr(logger, level, logger.info)(clean)
+
 def log_exception(logger: logging.Logger, message: str) -> None:
     """Log an exception with traceback."""
     logger.exception(message)

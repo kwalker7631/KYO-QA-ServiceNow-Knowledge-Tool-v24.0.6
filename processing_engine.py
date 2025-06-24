@@ -6,7 +6,7 @@ from pathlib import Path
 import fitz
 from datetime import datetime, timedelta
 
-from logging_utils import setup_logger, log_info, log_error, log_warning
+from logging_utils import setup_logger, log_info, log_error, log_warning, log_safe
 # Import custom exceptions explicitly so linters know where they come from
 from custom_exceptions import (
     QAExtractionError,
@@ -70,10 +70,10 @@ def process_single_pdf(pdf_path, txt_output_dir, progress_cb, ocr_cb, cancel_eve
     
     # Log what we extracted for debugging
     log_info(logger, f"Raw extracted data for {filename}:")
-    log_info(logger, f"  Full QA: '{extracted_data.get('full_qa_number', '')}'")
-    log_info(logger, f"  Short QA: '{extracted_data.get('short_qa_number', '')}'") 
-    log_info(logger, f"  Models: '{extracted_data.get('models', '')}'")
-    log_info(logger, f"  Subject: '{extracted_data.get('subject', '')}'")
+    log_safe(logger, f"  Full QA: '{extracted_data.get('full_qa_number', '')}'")
+    log_safe(logger, f"  Short QA: '{extracted_data.get('short_qa_number', '')}'")
+    log_safe(logger, f"  Models: '{extracted_data.get('models', '')}'")
+    log_safe(logger, f"  Subject: '{extracted_data.get('subject', '')}'")
 
     # Validate and enhance the data
     validated_data = validate_and_enhance_data(extracted_data, filename)
@@ -168,7 +168,7 @@ def validate_and_enhance_data(extracted_data, filename):
         models_clean = models_clean.rstrip('.,;')
         extracted_data["models"] = models_clean
         
-        log_info(logger, f"Cleaned models for {filename}: '{models_clean}'")
+        log_safe(logger, f"Cleaned models for {filename}: '{models_clean}'")
     else:
         log_warning(logger, f"No models found for {filename}")
     
@@ -239,7 +239,7 @@ def map_to_servicenow_format(extracted_data, filename):
     models_data = ""
     if extracted_data.get("models") and extracted_data["models"] not in ["Not Found", ""]:
         models_data = extracted_data["models"]
-        log_info(logger, f"Setting models data for {filename}: '{models_data}'")
+        log_safe(logger, f"Setting models data for {filename}: '{models_data}'")
     else:
         log_warning(logger, f"No models data to set for {filename}")
         
@@ -287,10 +287,10 @@ def map_to_servicenow_format(extracted_data, filename):
     
     # Log the final mapping for debugging
     log_info(logger, f"Final ServiceNow record for {filename}:")
-    log_info(logger, f"  Meta: '{servicenow_record['Meta']}'") 
-    log_info(logger, f"  Meta Description: '{servicenow_record['Meta Description']}'")
-    log_info(logger, f"  models: '{servicenow_record['models']}'")
-    log_info(logger, f"  Short description: '{servicenow_record['Short description'][:100]}...'")
+    log_safe(logger, f"  Meta: '{servicenow_record['Meta']}'")
+    log_safe(logger, f"  Meta Description: '{servicenow_record['Meta Description']}'")
+    log_safe(logger, f"  models: '{servicenow_record['models']}'")
+    log_safe(logger, f"  Short description: '{servicenow_record['Short description'][:100]}...'")
     
     return servicenow_record
 

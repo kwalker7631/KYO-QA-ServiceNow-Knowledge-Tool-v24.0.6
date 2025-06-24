@@ -1,7 +1,7 @@
 # KYO QA ServiceNow AI Extractor - SYNTAX FIXED VERSION
 import re
 from datetime import datetime
-from logging_utils import setup_logger, log_info, log_error, log_warning
+from logging_utils import setup_logger, log_info, log_error, log_warning, log_safe
 from config import STANDARDIZATION_RULES
 from ocr_utils import get_pdf_metadata
 from data_harvesters import identify_document_type
@@ -30,11 +30,11 @@ def ai_extract(text, pdf_path):
 
         # Log the final result for debugging
         log_info(logger, f"FINAL EXTRACTION RESULT for {filename}:")
-        log_info(logger, f"  Full QA: '{data.get('full_qa_number', '')}'")
-        log_info(logger, f"  Short QA: '{data.get('short_qa_number', '')}'")
-        log_info(logger, f"  Models: '{data.get('models', '')}'")
-        log_info(logger, f"  Subject: '{data.get('subject', '')}'")
-        log_info(logger, f"  Date: '{data.get('published_date', '')}'")
+        log_safe(logger, f"  Full QA: '{data.get('full_qa_number', '')}'")
+        log_safe(logger, f"  Short QA: '{data.get('short_qa_number', '')}'")
+        log_safe(logger, f"  Models: '{data.get('models', '')}'")
+        log_safe(logger, f"  Subject: '{data.get('subject', '')}'")
+        log_safe(logger, f"  Date: '{data.get('published_date', '')}'")
 
         return data
 
@@ -249,7 +249,7 @@ def bulletproof_extraction(text, filename):
             
             if len(subject) > 5:
                 data["subject"] = subject
-                log_info(logger, f"Subject found: {data['subject'][:100]}...")
+                log_safe(logger, f"Subject found: {data['subject'][:100]}...")
                 subject_extracted = True
                 break
 
@@ -259,7 +259,7 @@ def bulletproof_extraction(text, filename):
         clean_subject = re.sub(r'QA_[A-Z0-9]+_', '', clean_subject)
         clean_subject = re.sub(r'_SB.*', '', clean_subject)
         data["subject"] = clean_subject.strip()
-        log_info(logger, f"Using filename as subject: {data['subject']}")
+        log_safe(logger, f"Using filename as subject: {data['subject']}")
 
     return data
 

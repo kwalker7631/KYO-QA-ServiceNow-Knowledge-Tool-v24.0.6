@@ -4,6 +4,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 import types
 
 # Stub out PyMuPDF to avoid heavy dependency
+_orig_fitz = sys.modules.get('fitz')
 fitz_stub = types.ModuleType('fitz')
 class DummyDoc:
     def __enter__(self):
@@ -19,6 +20,11 @@ fitz_stub.open = lambda *args, **kwargs: DummyDoc()
 sys.modules.setdefault('fitz', fitz_stub)
 
 import ai_extractor
+
+if _orig_fitz is not None:
+    sys.modules['fitz'] = _orig_fitz
+else:
+    del sys.modules['fitz']
 
 
 def test_ai_extract_basic(monkeypatch, tmp_path):
