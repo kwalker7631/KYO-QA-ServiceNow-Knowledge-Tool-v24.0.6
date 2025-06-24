@@ -1,0 +1,14 @@
+import openpyxl
+from pathlib import Path
+from excel_generator import generate_excel
+
+
+def test_generate_excel_no_template(tmp_path):
+    data = [{"A": 1, "B": "two"}]
+    out_file = tmp_path / "result.xlsx"
+    returned = generate_excel(data, out_file, None)
+    assert Path(returned).exists()
+    wb = openpyxl.load_workbook(out_file)
+    sheet = wb.active
+    headers = [cell.value for cell in sheet[1]]
+    assert headers == ["A", "B"]

@@ -35,6 +35,7 @@ def _apply_formatting(sheet: openpyxl.worksheet.worksheet.Worksheet):
                 cell.fill = REVIEW_FILL
 
 def _use_template_excel(df, output_path, template_path):
+    """Write DataFrame to an Excel file based on an existing template."""
     try:
         shutil.copy2(template_path, output_path)
         workbook = openpyxl.load_workbook(output_path)
@@ -48,6 +49,21 @@ def _use_template_excel(df, output_path, template_path):
     except Exception as e:
         raise ExcelGenerationError(f"Failed to write data to template: {e}")
 
+
+def _create_new_excel(df, output_path):
+    """Write DataFrame to a brand new Excel file when no template is provided."""
+    try:
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        for row in dataframe_to_rows(df, index=False, header=True):
+            sheet.append(row)
+        _apply_formatting(sheet)
+        workbook.save(output_path)
+        log_info(logger, f"Successfully saved data to {output_path}")
+        return str(output_path)
+    except Exception as e:
+        raise ExcelGenerationError(f"Failed to write data: {e}")
+
 def generate_excel(all_results, output_path, template_path):
     try:
         if not all_results: raise ExcelGenerationError("No data to generate.")
@@ -59,7 +75,8 @@ def generate_excel(all_results, output_path, template_path):
             sheet = workbook["Page 1"] if "Page 1" in workbook.sheetnames else workbook.active
             template_headers = [cell.value for cell in sheet[1] if cell.value]
             workbook.close()
-            if not template_headers: raise ExcelGenerationError("No headers in template.")
+            if not template_headers:
+                raise ExcelGenerationError("No headers in template.")
 
             extra_cols = [col for col in df.columns if col not in template_headers]
             if extra_cols:
@@ -69,11 +86,13 @@ def generate_excel(all_results, output_path, template_path):
             missing_cols = [col for col in template_headers if col not in df.columns]
             if missing_cols:
                 log_warning(logger, f"Adding missing template columns: {missing_cols}")
-                for col in missing_cols: df[col] = ""
-            
+                for col in missing_cols:
+                    df[col] = ""
+
             df = df[template_headers]
-        
-        return _use_template_excel(df, output_path, template_path)
+            return _use_template_excel(df, output_path, template_path)
+        else:
+            return _create_new_excel(df, output_path)
     except Exception as e:
         log_error(logger, f"Excel generation failed: {e}")
         raise ExcelGenerationError(f"Failed to generate Excel file: {e}")
