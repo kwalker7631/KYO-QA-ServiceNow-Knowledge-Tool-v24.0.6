@@ -49,7 +49,7 @@ This tool extracts model info, QA/SB numbers, and descriptions from Kyocera QA/s
 | File                  | Role                                               |
 |------------------------|----------------------------------------------------|
 | `kyo_qa_tool_app.py`   | Main controller and orchestrator                  |
-| `processing_engine.py` | Coordinates the multi-step processing pipeline    |
+| `processing_engine.py` | Coordinates the multi-step processing pipeline. Checks only the first page when deciding if OCR is needed |
 | `ocr_utils.py`         | Converts PDF scans to text using OCR              |
 | `ai_extractor.py`      | Extracts structured data using regex/NLP          |
 | `data_harvesters.py`   | Adds supplemental metadata (e.g., model names)    |

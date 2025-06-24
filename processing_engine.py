@@ -26,12 +26,13 @@ logger = setup_logger("processing_engine")
 qa_extractor = QAExtractor()
 
 def _is_ocr_needed(pdf_path):
-    """Checks if a PDF contains very little text, suggesting it's image-based and needs OCR."""
+    """Checks the first page for text to determine if OCR is required."""
     try:
         with fitz.open(pdf_path) as doc:
-            if not doc.is_pdf or doc.is_encrypted:
+            if not doc.is_pdf or doc.is_encrypted or len(doc) == 0:
                 return False
-            text_content = "".join(page.get_text() for page in doc)
+            first_page = doc[0]
+            text_content = first_page.get_text()
             return len(text_content.strip()) < 100
     except Exception as e:
         log_warning(logger, f"Could not pre-check PDF {pdf_path.name}: {e}")
