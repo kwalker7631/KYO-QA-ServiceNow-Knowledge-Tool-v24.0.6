@@ -92,7 +92,14 @@ def generate_excel(all_results, output_path, template_path):
             df = df[template_headers]
             return _use_template_excel(df, output_path, template_path)
         else:
-            return _create_new_excel(df, output_path)
+            log_info(logger, "No template provided. Creating new workbook.")
+            df.to_excel(output_path, index=False)
+            workbook = openpyxl.load_workbook(output_path)
+            sheet = workbook.active
+            _apply_formatting(sheet)
+            workbook.save(output_path)
+            log_info(logger, f"Successfully saved data to {output_path}")
+            return str(output_path)
     except Exception as e:
         log_error(logger, f"Excel generation failed: {e}")
         raise ExcelGenerationError(f"Failed to generate Excel file: {e}")

@@ -12,3 +12,13 @@ def test_generate_excel_no_template(tmp_path):
     sheet = wb.active
     headers = [cell.value for cell in sheet[1]]
     assert headers == ["A", "B"]
+
+
+def test_generate_excel_no_template_returns_path(tmp_path):
+    data = [{"A": "first", "B": "second"}]
+    out_file = tmp_path / "out.xlsx"
+    returned = generate_excel(data, out_file, None)
+    assert returned == str(out_file)
+    wb = openpyxl.load_workbook(out_file)
+    sheet = wb.active
+    assert sheet["A2"].alignment.wrap_text
