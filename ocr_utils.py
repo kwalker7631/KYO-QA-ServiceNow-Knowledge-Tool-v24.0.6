@@ -13,8 +13,6 @@ def init_tesseract():
     try:
         # Try to import pytesseract
         import pytesseract
-        from PIL import Image
-        import io
         
         # Check common Windows paths
         tesseract_paths = [
