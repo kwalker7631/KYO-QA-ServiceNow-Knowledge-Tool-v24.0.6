@@ -907,9 +907,9 @@ class KyoQAToolApp(tk.Tk):
 
         except Exception as e:
             log_exception(logger, f"Processing error: {e}")
-            self.after(0, lambda: self.safe_log_message(f"CRITICAL ERROR: {e}", "error"))
+            self.after(0, lambda e=e: self.safe_log_message(f"CRITICAL ERROR: {e}", "error"))
             create_failure_log("Critical processing failure", str(e))
-            self.after(0, lambda: messagebox.showerror("Critical Error", f"Error: {e}"))
+            self.after(0, lambda e=e: messagebox.showerror("Critical Error", f"Error: {e}"))
         
         finally:
             # Reset UI state
