@@ -2,10 +2,10 @@
 from version import VERSION
 import re
 from datetime import datetime
-from logging_utils import setup_logger, log_info, log_error, log_warning
-from config import STANDARDIZATION_RULES
-from ocr_utils import get_pdf_metadata
-from data_harvesters import identify_document_type
+from utils.logging_utils import setup_logger, log_info, log_error, log_warning
+from utils.config import STANDARDIZATION_RULES
+from extract.ocr_utils import get_pdf_metadata
+from extract.data_harvesters import identify_document_type
 
 logger = setup_logger("ai_extractor")
 

@@ -7,13 +7,19 @@ from pathlib import Path
 import fitz
 from datetime import datetime, timedelta
 
-from logging_utils import setup_logger, log_info, log_error, log_warning
-from custom_exceptions import *
-from file_utils import get_temp_dir, cleanup_temp_files, is_pdf, is_zip, save_txt
-from ocr_utils import extract_text_from_pdf
-from ai_extractor import ai_extract
-from excel_generator import generate_excel
-from config import STANDARDIZATION_RULES
+from utils.logging_utils import setup_logger, log_info, log_error, log_warning
+from utils.custom_exceptions import *
+from utils.file_utils import (
+    get_temp_dir,
+    cleanup_temp_files,
+    is_pdf,
+    is_zip,
+    save_txt,
+)
+from extract.ocr_utils import extract_text_from_pdf
+from extract.ai_extractor import ai_extract
+from format.excel_generator import generate_excel
+from utils.config import STANDARDIZATION_RULES
 
 logger = setup_logger("processing_engine")
 

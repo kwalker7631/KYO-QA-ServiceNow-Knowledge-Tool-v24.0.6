@@ -1,8 +1,8 @@
 # KYO QA ServiceNow Data Harvesters
 from version import VERSION
 import re
-from logging_utils import setup_logger, log_info, log_error, log_warning
-from config import (
+from utils.logging_utils import setup_logger, log_info, log_error, log_warning
+from utils.config import (
     DATE_PATTERNS,
     SUBJECT_PATTERNS,
     STANDARDIZATION_RULES,
@@ -69,7 +69,7 @@ def harvest_subject(text):
 def harvest_metadata(text, pdf_path=None):
     """Extract comprehensive metadata from document text and PDF metadata."""
     try:
-        from ocr_utils import get_pdf_metadata
+        from extract.ocr_utils import get_pdf_metadata
         pdf_metadata = get_pdf_metadata(pdf_path) if pdf_path else {}
         results = {}
 

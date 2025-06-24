@@ -4,7 +4,7 @@ from version import VERSION
 import fitz  # PyMuPDF
 import os
 from pathlib import Path
-from logging_utils import setup_logger, log_info, log_error, log_warning
+from utils.logging_utils import setup_logger, log_info, log_error, log_warning
 
 logger = setup_logger("ocr_utils")
 

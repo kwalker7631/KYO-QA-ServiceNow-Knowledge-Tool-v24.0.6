@@ -2,8 +2,8 @@
 from version import VERSION
 import pandas as pd, shutil, openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
-from logging_utils import setup_logger, log_info, log_error, log_warning
-from custom_exceptions import ExcelGenerationError
+from utils.logging_utils import setup_logger, log_info, log_error, log_warning
+from utils.custom_exceptions import ExcelGenerationError
 
 logger = setup_logger("excel_generator")
 

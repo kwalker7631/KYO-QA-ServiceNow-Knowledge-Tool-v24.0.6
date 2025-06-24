@@ -15,14 +15,10 @@ KYO_QA_ServiceNow_Knowledge_Tool_v24.0.1/
 ├── README.md
 ├── CHANGELOG.md
 ├── kyo_qa_tool_app.py
-├── logging_utils.py
-├── ocr_utils.py
-├── ai_extractor.py
-├── data_harvesters.py
-├── excel_generator.py
-├── file_utils.py
-├── processing_engine.py
-├── custom_exceptions.py
+├── extract/
+├── transform/
+├── format/
+├── utils/
 ├── logs/(auto-created)
 ├── output/(auto-created)
 └── venv/(auto-created)
@@ -49,11 +45,11 @@ This tool extracts model info, QA/SB numbers, and descriptions from Kyocera QA/s
 | File                  | Role                                               |
 |------------------------|----------------------------------------------------|
 | `kyo_qa_tool_app.py`   | Main controller and orchestrator                  |
-| `processing_engine.py` | Coordinates the multi-step processing pipeline    |
-| `ocr_utils.py`         | Converts PDF scans to text using OCR              |
-| `ai_extractor.py`      | Extracts structured data using regex/NLP          |
-| `data_harvesters.py`   | Adds supplemental metadata (e.g., model names)    |
-| `excel_generator.py`   | Builds Excel files for ServiceNow import          |
+| `transform/processing_engine.py` | Coordinates the multi-step processing pipeline |
+| `extract/ocr_utils.py`  | Converts PDF scans to text using OCR              |
+| `extract/ai_extractor.py` | Extracts structured data using regex/NLP        |
+| `extract/data_harvesters.py` | Adds supplemental metadata (e.g., model names) |
+| `format/excel_generator.py` | Builds Excel files for ServiceNow import        |
 
 ---
 
@@ -61,9 +57,9 @@ This tool extracts model info, QA/SB numbers, and descriptions from Kyocera QA/s
 
 | File                    | Purpose                                   |
 |--------------------------|-------------------------------------------|
-| `file_utils.py`          | Handles file input/output operations     |
-| `logging_utils.py`       | Logs all actions to `/logs/` folder      |
-| `custom_exceptions.py`   | Defines custom errors for safe handling  |
+| `utils/file_utils.py`          | Handles file input/output operations     |
+| `utils/logging_utils.py`       | Logs all actions to `/logs/` folder      |
+| `utils/custom_exceptions.py`   | Defines custom errors for safe handling  |
 
 ---
 

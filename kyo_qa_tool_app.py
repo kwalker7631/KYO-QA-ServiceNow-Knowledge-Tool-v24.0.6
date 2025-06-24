@@ -10,11 +10,13 @@ import time
 from pathlib import Path
 import re
 
+# Public exports
+__all__ = ["ProgressPanel", "LogPanel", "KyoQAToolApp", "launch_app_with_splash"]
 # --- Safe Import with Fallbacks ---
 try:
-    from processing_engine import process_files, process_pdf_list
-    from file_utils import ensure_folders, cleanup_temp_files, open_file
-    from logging_utils import (
+    from transform.processing_engine import process_files, process_pdf_list
+    from utils.file_utils import ensure_folders, cleanup_temp_files, open_file
+    from utils.logging_utils import (
         setup_logger,
         log_info,
         log_error,
@@ -233,8 +235,8 @@ class SafeColorSpinnerCanvas(tk.Canvas):
             print(f"Animation error: {e}")
             self._is_spinning = False
 
-class SafeProgressFrame(ttk.Frame):
-    """Progress frame with error handling."""
+class ProgressPanel(ttk.Frame):
+    """Progress display with error handling."""
     
     def __init__(self, parent):
         try:
@@ -343,6 +345,54 @@ class SafeProgressFrame(ttk.Frame):
             self.grid()
         except Exception as e:
             print(f"Progress show error: {e}")
+
+
+class LogPanel(ttk.Frame):
+    """Panel for displaying log messages."""
+
+    def __init__(self, parent):
+        super().__init__(parent, padding=10)
+        self._create_widgets()
+
+    def _create_widgets(self):
+        try:
+            self.rowconfigure(0, weight=1)
+            self.columnconfigure(0, weight=1)
+
+            self.log_text = tk.Text(
+                self,
+                height=10,
+                width=80,
+                wrap=tk.WORD,
+                bg="white",
+                fg=BRAND_COLORS["text"],
+                state=tk.DISABLED,
+            )
+            self.log_text.grid(row=0, column=0, sticky="nsew")
+
+            scrollbar = ttk.Scrollbar(self, command=self.log_text.yview)
+            scrollbar.grid(row=0, column=1, sticky="ns")
+            self.log_text.config(yscrollcommand=scrollbar.set)
+
+            try:
+                self.log_text.tag_configure("success", foreground=BRAND_COLORS["success"])
+                self.log_text.tag_configure("warning", foreground=BRAND_COLORS["warning"])
+                self.log_text.tag_configure("error", foreground=BRAND_COLORS["error"])
+                self.log_text.tag_configure("info", foreground=BRAND_COLORS["info"])
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"Log panel creation error: {e}")
+
+    def log_message(self, msg: str, tag: str | None = None):
+        try:
+            self.log_text.config(state=tk.NORMAL)
+            ts = time.strftime("%H:%M:%S")
+            self.log_text.insert(tk.END, f"[{ts}] {msg}\n", tag)
+            self.log_text.see(tk.END)
+            self.log_text.config(state=tk.DISABLED)
+        except Exception as e:
+            print(f"Log insert error: {e}")
 
 class KyoQAToolApp(tk.Tk):
     def __init__(self):
@@ -500,7 +550,7 @@ class KyoQAToolApp(tk.Tk):
             self._create_process_section(main_frame)
             
             # Progress section
-            self.progress_frame = SafeProgressFrame(main_frame)
+            self.progress_frame = ProgressPanel(main_frame)
             self.progress_frame.grid(row=2, column=0, sticky="ew", pady=5)
             
             # Log section
@@ -572,30 +622,10 @@ class KyoQAToolApp(tk.Tk):
             log_frame.grid(row=3, column=0, sticky="nsew", pady=5)
             log_frame.rowconfigure(0, weight=1)
             log_frame.columnconfigure(0, weight=1)
-            
-            # Text widget with scrollbar
-            text_frame = ttk.Frame(log_frame)
-            text_frame.grid(row=0, column=0, sticky="nsew")
-            text_frame.rowconfigure(0, weight=1)
-            text_frame.columnconfigure(0, weight=1)
-            
-            self.log_text = tk.Text(text_frame, height=10, width=80, wrap=tk.WORD,
-                                   bg="white", fg=BRAND_COLORS["text"], state=tk.DISABLED)
-            self.log_text.grid(row=0, column=0, sticky="nsew")
-            
-            scrollbar = ttk.Scrollbar(text_frame, command=self.log_text.yview)
-            scrollbar.grid(row=0, column=1, sticky="ns")
-            self.log_text.config(yscrollcommand=scrollbar.set)
-            
-            # Configure text tags for colors
-            try:
-                self.log_text.tag_configure("success", foreground=BRAND_COLORS["success"])
-                self.log_text.tag_configure("warning", foreground=BRAND_COLORS["warning"])
-                self.log_text.tag_configure("error", foreground=BRAND_COLORS["error"])
-                self.log_text.tag_configure("info", foreground=BRAND_COLORS["info"])
-            except:
-                pass  # Continue without colored tags
-                
+
+            self.log_panel = LogPanel(log_frame)
+            self.log_panel.grid(row=0, column=0, sticky="nsew")
+
         except Exception as e:
             print(f"Log section creation error: {e}")
 
@@ -660,12 +690,10 @@ class KyoQAToolApp(tk.Tk):
     def safe_log_message(self, msg, tag=None):
         """Log message with error handling."""
         try:
-            self.log_text.config(state=tk.NORMAL)
-            ts = time.strftime("%H:%M:%S")
-            self.log_text.insert(tk.END, f"[{ts}] {msg}\n", tag)
-            self.log_text.see(tk.END)
-            self.log_text.config(state=tk.DISABLED)
-            self.update_idletasks()
+            if hasattr(self, "log_panel"):
+                self.log_panel.log_message(msg, tag)
+            else:
+                print(f"[{time.strftime('%H:%M:%S')}] {msg}")
         except Exception as e:
             print(f"Logging error: {e}")
             # Fallback to console
