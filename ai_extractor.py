@@ -55,6 +55,147 @@ def create_error_data(filename):
         "needs_review": True
     }
 
+def extract_qa_numbers(text, filename):
+    """Return full and short QA numbers if found."""
+    qa_extracted = False
+    full_qa = short_qa = ""
+
+    # Method 1: Ref. No. pattern (most common)
+    if not qa_extracted:
+        patterns = [
+            r"Ref\.\s*No\.\s*([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
+            r"Ref\s*No\s*[\.:]?\s*([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
+            r"Reference\s*No\s*[\.:]?\s*([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
+        ]
+
+        for pattern in patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                full_qa, short_qa = matches[0]
+                full_qa, short_qa = full_qa.strip(), short_qa.strip()
+                log_info(logger, f"Method 1 - Ref No found: {full_qa} ({short_qa})")
+                qa_extracted = True
+                break
+
+    # Method 2: Service Bulletin pattern
+    if not qa_extracted:
+        patterns = [
+            r"Service\s+Bulletin\s+([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
+            r"([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",  # Direct pattern
+        ]
+
+        for pattern in patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                full_qa, short_qa = matches[0]
+                full_qa, short_qa = full_qa.strip(), short_qa.strip()
+                log_info(logger, f"Method 2 - Service Bulletin found: {full_qa} ({short_qa})")
+                qa_extracted = True
+                break
+
+    # Method 3: Any format with parentheses
+    if not qa_extracted:
+        pattern = r"([A-Z]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)"
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        if matches:
+            full_qa, short_qa = matches[0]
+            full_qa, short_qa = full_qa.strip(), short_qa.strip()
+            log_info(logger, f"Method 3 - General pattern found: {full_qa} ({short_qa})")
+            qa_extracted = True
+
+    # Method 4: Filename extraction
+    if not qa_extracted:
+        full_qa, short_qa = extract_from_filename_bulletproof(filename)
+        if full_qa:
+            log_info(logger, f"Method 4 - Filename extraction: {full_qa} ({short_qa})")
+            qa_extracted = True
+
+    if not qa_extracted:
+        log_warning(logger, f"NO QA NUMBER FOUND for {filename}")
+
+    return full_qa, short_qa
+
+
+def extract_models(text, filename):
+    """Return extracted model string."""
+    models_extracted = False
+    models = ""
+
+    # Method 1: "Model:" line
+    if not models_extracted:
+        patterns = [
+            r"Model\s*:\s*([^\n\r]+?)(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)",
+            r"Models\s*:\s*([^\n\r]+?)(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)",
+            r"Model\s+([^\n\r]+?)(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)",
+        ]
+
+        for pattern in patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE | re.MULTILINE)
+            if matches:
+                models = matches[0].strip()
+                models = re.sub(r"\s+", " ", models)
+                models = re.sub(r"\s*,\s*", ", ", models)
+                if len(models) > 3 and not any(word in models.lower() for word in ["classification", "subject", "timing"]):
+                    log_info(logger, f"Method 1 - Model line found: {models[:100]}...")
+                    models_extracted = True
+                    break
+
+    # Method 2: Look for TASKalfa or ECOSYS patterns
+    if not models_extracted:
+        model_patterns = [
+            r"((?:TASKalfa|ECOSYS)\s+[A-Za-z0-9\s,\-\(\)]+?)(?:\n\n|\s{3,}|Classification:|Subject:|$)",
+            r"([A-Z]{2,}\s*[\w\-\s,]+?(?:ci|i|dn|cidn)\b(?:\s*,\s*[A-Z]{2,}\s*[\w\-\s]+?(?:ci|i|dn|cidn)\b)*)",
+        ]
+
+        for pattern in model_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE | re.MULTILINE)
+            if matches:
+                models = matches[0].strip()
+                models = re.sub(r"\s+", " ", models)
+                models = re.sub(r"\s*,\s*", ", ", models)
+                if len(models) > 5:
+                    log_info(logger, f"Method 2 - Pattern match found: {models[:100]}...")
+                    models_extracted = True
+                    break
+
+    if not models_extracted:
+        log_warning(logger, f"NO MODELS FOUND for {filename}")
+        models = "Not Found"
+
+    return models
+
+
+def extract_dates(text, filename):
+    """Return publication date in YYYY-MM-DD format if found."""
+    date_patterns = [
+        r"<Date>\s*(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})",
+        r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})",
+        r"(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})",
+        r"(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})",
+    ]
+
+    for pattern in date_patterns:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        if matches:
+            try:
+                match = matches[0]
+                if isinstance(match[0], str) and match[0].isalpha():
+                    date_str = f"{match[0]} {match[1]} {match[2]}"
+                    formatted_date = datetime.strptime(date_str, "%B %d %Y").strftime("%Y-%m-%d")
+                else:
+                    if len(match[0]) == 4:  # YYYY-MM-DD
+                        formatted_date = f"{match[0]}-{match[1].zfill(2)}-{match[2].zfill(2)}"
+                    else:  # MM/DD/YYYY or DD/MM/YYYY
+                        formatted_date = f"{match[2]}-{match[0].zfill(2)}-{match[1].zfill(2)}"
+                log_info(logger, f"Date found: {formatted_date}")
+                return formatted_date
+            except (ValueError, IndexError):
+                continue
+
+    log_warning(logger, f"NO DATE FOUND for {filename}")
+    return ""
+
+
 def bulletproof_extraction(text, filename):
     """
     BULLETPROOF extraction - tries every possible method.
@@ -78,151 +219,16 @@ def bulletproof_extraction(text, filename):
         log_warning(logger, f"No text to process for {filename}")
         return data
 
-    # ===== QA NUMBER EXTRACTION (Multiple Methods) =====
-    qa_extracted = False
-    
-    # Method 1: Ref. No. pattern (most common)
-    if not qa_extracted:
-        patterns = [
-            r"Ref\.\s*No\.\s*([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
-            r"Ref\s*No\s*[\.:]?\s*([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
-            r"Reference\s*No\s*[\.:]?\s*([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
-        ]
-        
-        for pattern in patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            if matches:
-                full_qa, short_qa = matches[0]
-                data["full_qa_number"] = full_qa.strip()
-                data["short_qa_number"] = short_qa.strip()
-                log_info(logger, f"Method 1 - Ref No found: {data['full_qa_number']} ({data['short_qa_number']})")
-                qa_extracted = True
-                break
+    # ===== QA NUMBER EXTRACTION =====
+    full_qa, short_qa = extract_qa_numbers(text, filename)
+    data["full_qa_number"] = full_qa
+    data["short_qa_number"] = short_qa
 
-    # Method 2: Service Bulletin pattern
-    if not qa_extracted:
-        patterns = [
-            r"Service\s+Bulletin\s+([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
-            r"([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",  # Direct pattern
-        ]
-        
-        for pattern in patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            if matches:
-                full_qa, short_qa = matches[0]
-                data["full_qa_number"] = full_qa.strip()
-                data["short_qa_number"] = short_qa.strip()
-                log_info(logger, f"Method 2 - Service Bulletin found: {data['full_qa_number']} ({data['short_qa_number']})")
-                qa_extracted = True
-                break
-
-    # Method 3: Any format with parentheses
-    if not qa_extracted:
-        pattern = r"([A-Z]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)"
-        matches = re.findall(pattern, text, re.IGNORECASE)
-        if matches:
-            full_qa, short_qa = matches[0]
-            data["full_qa_number"] = full_qa.strip()
-            data["short_qa_number"] = short_qa.strip()
-            log_info(logger, f"Method 3 - General pattern found: {data['full_qa_number']} ({data['short_qa_number']})")
-            qa_extracted = True
-
-    # Method 4: Filename extraction
-    if not qa_extracted:
-        full_qa, short_qa = extract_from_filename_bulletproof(filename)
-        if full_qa:
-            data["full_qa_number"] = full_qa
-            data["short_qa_number"] = short_qa
-            log_info(logger, f"Method 4 - Filename extraction: {data['full_qa_number']} ({data['short_qa_number']})")
-            qa_extracted = True
-
-    if not qa_extracted:
-        log_warning(logger, f"NO QA NUMBER FOUND for {filename}")
-
-    # ===== MODEL EXTRACTION (Multiple Methods) =====
-    models_extracted = False
-    
-    # Method 1: "Model:" line
-    if not models_extracted:
-        patterns = [
-            r"Model\s*:\s*([^\n\r]+?)(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)",
-            r"Models\s*:\s*([^\n\r]+?)(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)",
-            r"Model\s+([^\n\r]+?)(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)",
-        ]
-        
-        for pattern in patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE | re.MULTILINE)
-            if matches:
-                models = matches[0].strip()
-                # Clean up models
-                models = re.sub(r'\s+', ' ', models)
-                models = re.sub(r'\s*,\s*', ', ', models)
-                
-                if len(models) > 3 and not any(word in models.lower() for word in ['classification', 'subject', 'timing']):
-                    data["models"] = models
-                    log_info(logger, f"Method 1 - Model line found: {data['models'][:100]}...")
-                    models_extracted = True
-                    break
-
-    # Method 2: Look for TASKalfa or ECOSYS patterns
-    if not models_extracted:
-        model_patterns = [
-            r"((?:TASKalfa|ECOSYS)\s+[A-Za-z0-9\s,\-\(\)]+?)(?:\n\n|\s{3,}|Classification:|Subject:|$)",
-            r"([A-Z]{2,}\s*[\w\-\s,]+?(?:ci|i|dn|cidn)\b(?:\s*,\s*[A-Z]{2,}\s*[\w\-\s]+?(?:ci|i|dn|cidn)\b)*)",
-        ]
-        
-        for pattern in model_patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE | re.MULTILINE)
-            if matches:
-                models = matches[0].strip()
-                models = re.sub(r'\s+', ' ', models)
-                models = re.sub(r'\s*,\s*', ', ', models)
-                
-                if len(models) > 5:
-                    data["models"] = models
-                    log_info(logger, f"Method 2 - Pattern match found: {data['models'][:100]}...")
-                    models_extracted = True
-                    break
-
-    if not models_extracted:
-        log_warning(logger, f"NO MODELS FOUND for {filename}")
-        data["models"] = "Not Found"
+    # ===== MODEL EXTRACTION =====
+    data["models"] = extract_models(text, filename)
 
     # ===== DATE EXTRACTION =====
-    date_extracted = False
-    
-    date_patterns = [
-        r"<Date>\s*(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})",
-        r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})",
-        r"(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})",
-        r"(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})",
-    ]
-
-    for pattern in date_patterns:
-        matches = re.findall(pattern, text, re.IGNORECASE)
-        if matches:
-            try:
-                match = matches[0]
-                if isinstance(match[0], str) and match[0].isalpha():
-                    # Month name format
-                    date_str = f"{match[0]} {match[1]} {match[2]}"
-                    formatted_date = datetime.strptime(date_str, "%B %d %Y").strftime("%Y-%m-%d")
-                else:
-                    # Numeric format - try different arrangements
-                    if len(match[0]) == 4:  # YYYY-MM-DD
-                        formatted_date = f"{match[0]}-{match[1].zfill(2)}-{match[2].zfill(2)}"
-                    else:  # MM/DD/YYYY or DD/MM/YYYY
-                        formatted_date = f"{match[2]}-{match[0].zfill(2)}-{match[1].zfill(2)}"
-                
-                data["published_date"] = formatted_date
-                log_info(logger, f"Date found: {data['published_date']}")
-                date_extracted = True
-                break
-            except (ValueError, IndexError):
-                continue
-
-    if not date_extracted:
-        log_warning(logger, f"NO DATE FOUND for {filename}")
+    data["published_date"] = extract_dates(text, filename)
 
     # ===== SUBJECT EXTRACTION =====
     subject_extracted = False
