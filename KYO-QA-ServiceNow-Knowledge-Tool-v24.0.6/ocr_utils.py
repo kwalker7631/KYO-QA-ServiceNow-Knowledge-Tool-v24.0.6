@@ -13,8 +13,6 @@ def init_tesseract():
     try:
         # Try to import pytesseract
         import pytesseract
-        from PIL import Image
-        import io
         
         # Check common Windows paths
         tesseract_paths = [
@@ -83,8 +81,6 @@ def extract_text_with_ocr(pdf_path: Path | str) -> str:
     try:
         # Import here to avoid errors if not installed
         import pytesseract
-        from PIL import Image
-        import io
         
         all_text = []
         with fitz.open(pdf_path) as doc:

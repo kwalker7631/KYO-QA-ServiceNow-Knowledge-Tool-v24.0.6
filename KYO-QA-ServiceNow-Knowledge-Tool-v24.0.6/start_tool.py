@@ -164,12 +164,15 @@ def check_existing_virtualenv():
         else:
             spinner.stop()
             print_warning("Virtual environment test failed - will recreate")
-            log_warning(logger, f"Virtual environment test failed: {result.stderr}")
+            log_warning(
+                logger,
+                f"Virtual environment test failed: {result.stderr}"
+            )
             return False
             
     except Exception as e:
         spinner.stop()
-        print_warning(f"Virtual environment validation error - will recreate")
+        print_warning("Virtual environment validation error - will recreate")
         log_warning(logger, f"Virtual environment validation error: {e}")
         return False
 
@@ -248,7 +251,9 @@ def check_and_install_requirements():
         
         if not missing_packages:
             spinner.stop("All critical packages are already installed")
-            print_success("Dependencies are up to date - skipping installation")
+            print_success(
+                "Dependencies are up to date - skipping installation"
+            )
             log_info(logger, "All required packages already installed")
             return
         else:
@@ -297,7 +302,10 @@ def check_and_install_requirements():
         else:
             spinner.stop()
             print_warning("Some packages may have failed to install")
-            log_warning(logger, f"Package installation warnings: {install_process.stderr}")
+            log_warning(
+                logger,
+                f"Package installation warnings: {install_process.stderr}"
+            )
             # Continue anyway - some packages might still work
         
     except Exception as e:
@@ -333,7 +341,10 @@ def run_app():
         
         # Print a final message
         print("\n" + "=" * 70)
-        print(f"{COLOR_SUCCESS}KYO QA ServiceNow Knowledge Tool {VERSION} is starting...{COLOR_RESET}")
+        print(
+            f"{COLOR_SUCCESS}KYO QA ServiceNow Knowledge Tool {VERSION} is "
+            f"starting...{COLOR_RESET}"
+        )
         print("=" * 70 + "\n")
         
         # Launch the application
@@ -368,7 +379,7 @@ def main(cli_args=None):
         if not venv_exists:
             create_virtualenv()
         
-        # Always check and install missing requirements (but skip if all present)
+        # Always check and install missing requirements
         check_and_install_requirements()
         
         # Launch the application

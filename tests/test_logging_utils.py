@@ -1,5 +1,4 @@
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-import os
 from pathlib import Path
 from logging_utils import create_success_log, create_failure_log
 

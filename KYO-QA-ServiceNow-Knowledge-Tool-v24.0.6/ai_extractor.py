@@ -21,7 +21,10 @@ def ai_extract(text, pdf_path):
 
         # Supplement with metadata
         metadata = get_pdf_metadata(pdf_path)
-        if not data.get("author") or data["author"] == STANDARDIZATION_RULES["default_author"]:
+        if (
+            not data.get("author")
+            or data["author"] == STANDARDIZATION_RULES["default_author"]
+        ):
             if metadata.get("author"):
                 data["author"] = metadata["author"]
         
@@ -39,7 +42,10 @@ def ai_extract(text, pdf_path):
         return data
 
     except Exception as e:
-        log_error(logger, f"Critical error in ai_extract for {pdf_path.name}: {e}")
+        log_error(
+            logger,
+            f"Critical error in ai_extract for {pdf_path.name}: {e}"
+        )
         return create_error_data(pdf_path.name)
 
 def create_error_data(filename):
@@ -63,9 +69,18 @@ def extract_qa_numbers(text, filename):
     # Method 1: Ref. No. pattern (most common)
     if not qa_extracted:
         patterns = [
-            r"Ref\.\s*No\.\s*([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
-            r"Ref\s*No\s*[\.:]?\s*([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
-            r"Reference\s*No\s*[\.:]?\s*([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
+                (
+                    r"Ref\.\s*No\.\s*([A-Z0-9]{2,4}[-]?\d{4})\s*"
+                    r"\(([A-Z]\d{2,4})\)"
+                ),
+                (
+                    r"Ref\s*No\s*[\.:]?\s*([A-Z0-9]{2,4}[-]?\d{4})\s*"
+                    r"\(([A-Z]\d{2,4})\)"
+                ),
+                (
+                    r"Reference\s*No\s*[\.:]?\s*([A-Z0-9]{2,4}[-]?\d{4})\s*"
+                    r"\(([A-Z]\d{2,4})\)"
+                ),
         ]
 
         for pattern in patterns:
@@ -73,15 +88,23 @@ def extract_qa_numbers(text, filename):
             if matches:
                 full_qa, short_qa = matches[0]
                 full_qa, short_qa = full_qa.strip(), short_qa.strip()
-                log_info(logger, f"Method 1 - Ref No found: {full_qa} ({short_qa})")
+                log_info(
+                    logger,
+                    f"Method 1 - Ref No found: {full_qa} ({short_qa})"
+                )
                 qa_extracted = True
                 break
 
     # Method 2: Service Bulletin pattern
     if not qa_extracted:
         patterns = [
-            r"Service\s+Bulletin\s+([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",
-            r"([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)",  # Direct pattern
+            (
+                r"Service\s+Bulletin\s+([A-Z0-9]{2,4}[-]?\d{4})\s*"
+                r"\(([A-Z]\d{2,4})\)"
+            ),
+            (
+                r"([A-Z0-9]{2,4}[-]?\d{4})\s*\(([A-Z]\d{2,4})\)"
+            ),
         ]
 
         for pattern in patterns:
@@ -89,7 +112,13 @@ def extract_qa_numbers(text, filename):
             if matches:
                 full_qa, short_qa = matches[0]
                 full_qa, short_qa = full_qa.strip(), short_qa.strip()
-                log_info(logger, f"Method 2 - Service Bulletin found: {full_qa} ({short_qa})")
+                log_info(
+                    logger,
+                    (
+                        f"Method 2 - Service Bulletin found: {full_qa}"
+                        f" ({short_qa})"
+                    )
+                )
                 qa_extracted = True
                 break
 
@@ -100,14 +129,20 @@ def extract_qa_numbers(text, filename):
         if matches:
             full_qa, short_qa = matches[0]
             full_qa, short_qa = full_qa.strip(), short_qa.strip()
-            log_info(logger, f"Method 3 - General pattern found: {full_qa} ({short_qa})")
+            log_info(
+                logger,
+                f"Method 3 - General pattern found: {full_qa} ({short_qa})"
+            )
             qa_extracted = True
 
     # Method 4: Filename extraction
     if not qa_extracted:
         full_qa, short_qa = extract_from_filename_bulletproof(filename)
         if full_qa:
-            log_info(logger, f"Method 4 - Filename extraction: {full_qa} ({short_qa})")
+            log_info(
+                logger,
+                f"Method 4 - Filename extraction: {full_qa} ({short_qa})"
+            )
             qa_extracted = True
 
     if not qa_extracted:
@@ -124,9 +159,18 @@ def extract_models(text, filename):
     # Method 1: "Model:" line
     if not models_extracted:
         patterns = [
-            r"Model\s*:\s*([^\n\r]+?)(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)",
-            r"Models\s*:\s*([^\n\r]+?)(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)",
-            r"Model\s+([^\n\r]+?)(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)",
+            (
+                r"Model\s*:\s*([^\n\r]+?)"
+                r"(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)"
+            ),
+            (
+                r"Models\s*:\s*([^\n\r]+?)"
+                r"(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)"
+            ),
+            (
+                r"Model\s+([^\n\r]+?)"
+                r"(?:\n|Classification:|Subject:|timing:|Phenomenon:|$)"
+            ),
         ]
 
         for pattern in patterns:
@@ -212,9 +256,9 @@ def bulletproof_extraction(text, filename):
     log_info(logger, f"Starting bulletproof extraction for: {filename}")
     log_info(logger, f"Text length: {len(text)} characters")
     
-    # Show first 500 chars for debugging
+    # Only log the presence of text to avoid leaking PDF content
     if len(text) > 0:
-        log_info(logger, f"Text preview: {repr(text[:500])}")
+        log_info(logger, f"Text available for {filename} ({len(text)} characters)")
     else:
         log_warning(logger, f"No text to process for {filename}")
         return data
