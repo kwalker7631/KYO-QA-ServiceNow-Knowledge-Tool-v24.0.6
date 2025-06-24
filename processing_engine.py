@@ -18,11 +18,12 @@ from custom_exceptions import (
 )
 from file_utils import get_temp_dir, cleanup_temp_files, is_pdf, is_zip, save_txt
 from ocr_utils import extract_text_from_pdf
-from ai_extractor import ai_extract
+from extract.ai_extractor import QAExtractor
 from excel_generator import generate_excel
 from config import STANDARDIZATION_RULES
 
 logger = setup_logger("processing_engine")
+qa_extractor = QAExtractor()
 
 def _is_ocr_needed(pdf_path):
     """Checks if a PDF contains very little text, suggesting it's image-based and needs OCR."""
@@ -66,7 +67,7 @@ def process_single_pdf(pdf_path, txt_output_dir, progress_cb, ocr_cb, cancel_eve
     progress_cb(f"Analyzing content of {filename}...")
 
     # Extract data using AI extractor
-    extracted_data = ai_extract(extracted_text, Path(pdf_path))
+    extracted_data = qa_extractor.extract(extracted_text, Path(pdf_path))
     
     # Log what we extracted for debugging
     log_info(logger, f"Raw extracted data for {filename}:")

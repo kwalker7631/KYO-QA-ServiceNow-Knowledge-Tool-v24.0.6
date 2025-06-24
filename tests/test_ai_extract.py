@@ -1,24 +1,8 @@
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-import types
-
-# Stub out PyMuPDF to avoid heavy dependency
-fitz_stub = types.ModuleType('fitz')
-class DummyDoc:
-    def __enter__(self):
-        return self
-    def __exit__(self, exc_type, exc, tb):
-        pass
-    @property
-    def metadata(self):
-        return {}
-    def __len__(self):
-        return 1
-fitz_stub.open = lambda *args, **kwargs: DummyDoc()
-sys.modules.setdefault('fitz', fitz_stub)
-
-import ai_extractor
+import extract.ai_extractor as ai_extractor
+from extract.ai_extractor import QAExtractor
 
 
 def test_ai_extract_basic(monkeypatch, tmp_path):
@@ -35,7 +19,8 @@ def test_ai_extract_basic(monkeypatch, tmp_path):
     pdf = tmp_path / "QA_20146_E099-2M8-0016.pdf"
     pdf.write_text("dummy")
 
-    result = ai_extractor.ai_extract(text, pdf)
+    extractor = QAExtractor()
+    result = extractor.extract(text, pdf)
 
     assert result["full_qa_number"] == "2M8-0016"
     assert result["short_qa_number"] == "E099"
