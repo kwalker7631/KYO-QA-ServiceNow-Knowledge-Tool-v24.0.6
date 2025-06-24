@@ -16,9 +16,6 @@ try:
     from file_utils import ensure_folders, cleanup_temp_files, open_file
     from logging_utils import (
         setup_logger,
-        log_info,
-        log_error,
-        log_exception,
         create_success_log,
         create_failure_log,
         LOG_DIR,
@@ -906,7 +903,7 @@ class KyoQAToolApp(tk.Tk):
                 self.after(0, lambda: messagebox.showerror("Processing Failed", "No output file was created."))
 
         except Exception as e:
-            log_exception(logger, f"Processing error: {e}")
+            logger.exception(f"Processing error: {e}")
             self.after(0, lambda: self.safe_log_message(f"CRITICAL ERROR: {e}", "error"))
             create_failure_log("Critical processing failure", str(e))
             self.after(0, lambda: messagebox.showerror("Critical Error", f"Error: {e}"))
@@ -1021,7 +1018,7 @@ def launch_app_with_splash():
             app.mainloop()
             
         except Exception as e:
-            log_exception(logger, "Application startup failed")
+            logger.exception("Application startup failed")
             try:
                 messagebox.showerror("Startup Error", f"Critical error: {e}")
             finally:

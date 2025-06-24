@@ -61,29 +61,6 @@ def setup_logger(name: str, console_output=True, max_file_size=10*1024*1024) -> 
     
     return logger
 
-def log_info(logger: logging.Logger, message: str) -> None:
-    """Log an info message."""
-    logger.info(message)
-
-def log_error(logger: logging.Logger, message: str) -> None:
-    """Log an error message."""
-    logger.error(message)
-
-def log_warning(logger: logging.Logger, message: str) -> None:
-    """Log a warning message."""
-    logger.warning(message)
-
-def log_debug(logger: logging.Logger, message: str) -> None:
-    """Log a debug message."""
-    logger.debug(message)
-
-def log_critical(logger: logging.Logger, message: str) -> None:
-    """Log a critical message."""
-    logger.critical(message)
-
-def log_exception(logger: logging.Logger, message: str) -> None:
-    """Log an exception with traceback."""
-    logger.exception(message)
 
 def create_success_log(message, output_file=None):
     """Create a summary success log file."""

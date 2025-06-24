@@ -5,7 +5,7 @@ import os
 import shutil
 import time
 from pathlib import Path
-from logging_utils import setup_logger, log_info, log_error, log_warning
+from logging_utils import setup_logger
 from datetime import datetime
 
 logger = setup_logger("file_utils")
@@ -25,9 +25,9 @@ def ensure_folders(base_folder=None):
         fpath = base / folder
         try:
             fpath.mkdir(parents=True, exist_ok=True)
-            log_info(logger, f"Ensured folder exists: {fpath}")
+            logger.info(f"Ensured folder exists: {fpath}")
         except Exception as e:
-            log_error(logger, f"Failed to create folder {fpath}: {e}")
+            logger.error(f"Failed to create folder {fpath}: {e}")
     return base
 
 def get_temp_dir():
@@ -53,10 +53,10 @@ def save_txt(text, output_path):
     try:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(text)
-        log_info(logger, f"Saved TXT: {output_path}")
+        logger.info(f"Saved TXT: {output_path}")
         return True
     except Exception as e:
-        log_error(logger, f"Failed to save TXT: {output_path} - {e}")
+        logger.error(f"Failed to save TXT: {output_path} - {e}")
         return False
 
 def cleanup_temp_files(directory=None):
@@ -77,7 +77,7 @@ def cleanup_temp_files(directory=None):
                         item.unlink()
                         count += 1
                     except Exception as e:
-                        log_warning(logger, f"Could not delete {item}: {e}")
+                        logger.warning(f"Could not delete {item}: {e}")
         
         # Remove empty directories
         for root, dirs, files in os.walk(directory, topdown=False):
@@ -87,12 +87,12 @@ def cleanup_temp_files(directory=None):
                     if not any(dir_path.iterdir()):
                         dir_path.rmdir()
                 except Exception as e:
-                    log_warning(logger, f"Could not remove directory {dir_path}: {e}")
+                    logger.warning(f"Could not remove directory {dir_path}: {e}")
         
-        log_info(logger, f"Cleaned up {count} temporary files")
+        logger.info(f"Cleaned up {count} temporary files")
         return count
     except Exception as e:
-        log_error(logger, f"Failed to clean up temporary files: {e}")
+        logger.error(f"Failed to clean up temporary files: {e}")
         return 0
 
 def copy_file_safely(source_path, dest_path, retries=3, wait_time=1.0):
@@ -112,7 +112,7 @@ def copy_file_safely(source_path, dest_path, retries=3, wait_time=1.0):
     dest_path = Path(dest_path)
     
     if not source_path.exists():
-        log_error(logger, f"Source file does not exist: {source_path}")
+        logger.error(f"Source file does not exist: {source_path}")
         return False
     
     # Ensure parent directory exists
@@ -123,7 +123,7 @@ def copy_file_safely(source_path, dest_path, retries=3, wait_time=1.0):
             # For small files, direct copy should work
             if source_path.stat().st_size < 10 * 1024 * 1024:  # Less than 10MB
                 shutil.copy2(source_path, dest_path)
-                log_info(logger, f"Copied {source_path} to {dest_path}")
+                logger.info(f"Copied {source_path} to {dest_path}")
                 return True
             
             # For larger files, use chunk-by-chunk copy
@@ -135,14 +135,14 @@ def copy_file_safely(source_path, dest_path, retries=3, wait_time=1.0):
                         break
                     dst.write(chunk)
             
-            log_info(logger, f"Copied {source_path} to {dest_path} in chunks")
+            logger.info(f"Copied {source_path} to {dest_path} in chunks")
             return True
             
         except Exception as e:
-            log_warning(logger, f"Copy attempt {attempt+1}/{retries} failed: {e}")
+            logger.warning(f"Copy attempt {attempt+1}/{retries} failed: {e}")
             time.sleep(wait_time)
     
-    log_error(logger, f"Failed to copy {source_path} to {dest_path} after {retries} attempts")
+    logger.error(f"Failed to copy {source_path} to {dest_path} after {retries} attempts")
     return False
 
 def open_file(file_path):
@@ -158,7 +158,7 @@ def open_file(file_path):
     try:
         file_path = Path(file_path)
         if not file_path.exists():
-            log_error(logger, f"File does not exist: {file_path}")
+            logger.error(f"File does not exist: {file_path}")
             return False
         
         import sys
@@ -166,16 +166,16 @@ def open_file(file_path):
         
         if sys.platform == 'win32':
             os.startfile(file_path)
-            log_info(logger, f"Opened {file_path} with default Windows application")
+            logger.info(f"Opened {file_path} with default Windows application")
         elif sys.platform == 'darwin':  # macOS
             subprocess.run(['open', str(file_path)], check=True)
-            log_info(logger, f"Opened {file_path} with default macOS application")
+            logger.info(f"Opened {file_path} with default macOS application")
         else:  # Linux
             subprocess.run(['xdg-open', str(file_path)], check=True)
-            log_info(logger, f"Opened {file_path} with default Linux application")
+            logger.info(f"Opened {file_path} with default Linux application")
             
         return True
         
     except Exception as e:
-        log_error(logger, f"Failed to open {file_path}: {e}")
+        logger.error(f"Failed to open {file_path}: {e}")
         return False

@@ -2,7 +2,7 @@
 from version import VERSION
 import re
 from datetime import datetime
-from logging_utils import setup_logger, log_info, log_error, log_warning
+from logging_utils import setup_logger
 from config import STANDARDIZATION_RULES
 from ocr_utils import get_pdf_metadata
 from data_harvesters import identify_document_type
@@ -15,7 +15,7 @@ def ai_extract(text, pdf_path):
     """
     try:
         filename = pdf_path.name
-        log_info(logger, f"Starting extraction for: {filename}")
+        logger.info(f"Starting extraction for: {filename}")
 
         # Use bulletproof extraction
         data = bulletproof_extraction(text, filename)
@@ -30,17 +30,17 @@ def ai_extract(text, pdf_path):
         data["document_type"] = identify_document_type(text)
 
         # Log the final result for debugging
-        log_info(logger, f"FINAL EXTRACTION RESULT for {filename}:")
-        log_info(logger, f"  Full QA: '{data.get('full_qa_number', '')}'")
-        log_info(logger, f"  Short QA: '{data.get('short_qa_number', '')}'")
-        log_info(logger, f"  Models: '{data.get('models', '')}'")
-        log_info(logger, f"  Subject: '{data.get('subject', '')}'")
-        log_info(logger, f"  Date: '{data.get('published_date', '')}'")
+        logger.info(f"FINAL EXTRACTION RESULT for {filename}:")
+        logger.info(f"  Full QA: '{data.get('full_qa_number', '')}'")
+        logger.info(f"  Short QA: '{data.get('short_qa_number', '')}'")
+        logger.info(f"  Models: '{data.get('models', '')}'")
+        logger.info(f"  Subject: '{data.get('subject', '')}'")
+        logger.info(f"  Date: '{data.get('published_date', '')}'")
 
         return data
 
     except Exception as e:
-        log_error(logger, f"Critical error in ai_extract for {pdf_path.name}: {e}")
+        logger.error(f"Critical error in ai_extract for {pdf_path.name}: {e}")
         return create_error_data(pdf_path.name)
 
 def create_error_data(filename):
@@ -69,14 +69,14 @@ def bulletproof_extraction(text, filename):
         "subject": "",
     }
 
-    log_info(logger, f"Starting bulletproof extraction for: {filename}")
-    log_info(logger, f"Text length: {len(text)} characters")
+    logger.info(f"Starting bulletproof extraction for: {filename}")
+    logger.info(f"Text length: {len(text)} characters")
     
     # Show first 500 chars for debugging
     if len(text) > 0:
-        log_info(logger, f"Text preview: {repr(text[:500])}")
+        logger.info(f"Text preview: {repr(text[:500])}")
     else:
-        log_warning(logger, f"No text to process for {filename}")
+        logger.warning(f"No text to process for {filename}")
         return data
 
     # ===== QA NUMBER EXTRACTION (Multiple Methods) =====
@@ -96,7 +96,7 @@ def bulletproof_extraction(text, filename):
                 full_qa, short_qa = matches[0]
                 data["full_qa_number"] = full_qa.strip()
                 data["short_qa_number"] = short_qa.strip()
-                log_info(logger, f"Method 1 - Ref No found: {data['full_qa_number']} ({data['short_qa_number']})")
+                logger.info(f"Method 1 - Ref No found: {data['full_qa_number']} ({data['short_qa_number']})")
                 qa_extracted = True
                 break
 
@@ -113,7 +113,7 @@ def bulletproof_extraction(text, filename):
                 full_qa, short_qa = matches[0]
                 data["full_qa_number"] = full_qa.strip()
                 data["short_qa_number"] = short_qa.strip()
-                log_info(logger, f"Method 2 - Service Bulletin found: {data['full_qa_number']} ({data['short_qa_number']})")
+                logger.info(f"Method 2 - Service Bulletin found: {data['full_qa_number']} ({data['short_qa_number']})")
                 qa_extracted = True
                 break
 
@@ -125,7 +125,7 @@ def bulletproof_extraction(text, filename):
             full_qa, short_qa = matches[0]
             data["full_qa_number"] = full_qa.strip()
             data["short_qa_number"] = short_qa.strip()
-            log_info(logger, f"Method 3 - General pattern found: {data['full_qa_number']} ({data['short_qa_number']})")
+            logger.info(f"Method 3 - General pattern found: {data['full_qa_number']} ({data['short_qa_number']})")
             qa_extracted = True
 
     # Method 4: Filename extraction
@@ -134,11 +134,11 @@ def bulletproof_extraction(text, filename):
         if full_qa:
             data["full_qa_number"] = full_qa
             data["short_qa_number"] = short_qa
-            log_info(logger, f"Method 4 - Filename extraction: {data['full_qa_number']} ({data['short_qa_number']})")
+            logger.info(f"Method 4 - Filename extraction: {data['full_qa_number']} ({data['short_qa_number']})")
             qa_extracted = True
 
     if not qa_extracted:
-        log_warning(logger, f"NO QA NUMBER FOUND for {filename}")
+        logger.warning(f"NO QA NUMBER FOUND for {filename}")
 
     # ===== MODEL EXTRACTION (Multiple Methods) =====
     models_extracted = False
@@ -161,7 +161,7 @@ def bulletproof_extraction(text, filename):
                 
                 if len(models) > 3 and not any(word in models.lower() for word in ['classification', 'subject', 'timing']):
                     data["models"] = models
-                    log_info(logger, f"Method 1 - Model line found: {data['models'][:100]}...")
+                    logger.info(f"Method 1 - Model line found: {data['models'][:100]}...")
                     models_extracted = True
                     break
 
@@ -181,12 +181,12 @@ def bulletproof_extraction(text, filename):
                 
                 if len(models) > 5:
                     data["models"] = models
-                    log_info(logger, f"Method 2 - Pattern match found: {data['models'][:100]}...")
+                    logger.info(f"Method 2 - Pattern match found: {data['models'][:100]}...")
                     models_extracted = True
                     break
 
     if not models_extracted:
-        log_warning(logger, f"NO MODELS FOUND for {filename}")
+        logger.warning(f"NO MODELS FOUND for {filename}")
         data["models"] = "Not Found"
 
     # ===== DATE EXTRACTION =====
@@ -216,14 +216,14 @@ def bulletproof_extraction(text, filename):
                         formatted_date = f"{match[2]}-{match[0].zfill(2)}-{match[1].zfill(2)}"
                 
                 data["published_date"] = formatted_date
-                log_info(logger, f"Date found: {data['published_date']}")
+                logger.info(f"Date found: {data['published_date']}")
                 date_extracted = True
                 break
             except (ValueError, IndexError):
                 continue
 
     if not date_extracted:
-        log_warning(logger, f"NO DATE FOUND for {filename}")
+        logger.warning(f"NO DATE FOUND for {filename}")
 
     # ===== SUBJECT EXTRACTION =====
     subject_extracted = False
@@ -244,7 +244,7 @@ def bulletproof_extraction(text, filename):
             
             if len(subject) > 5:
                 data["subject"] = subject
-                log_info(logger, f"Subject found: {data['subject'][:100]}...")
+                logger.info(f"Subject found: {data['subject'][:100]}...")
                 subject_extracted = True
                 break
 
@@ -254,21 +254,21 @@ def bulletproof_extraction(text, filename):
         clean_subject = re.sub(r'QA_[A-Z0-9]+_', '', clean_subject)
         clean_subject = re.sub(r'_SB.*', '', clean_subject)
         data["subject"] = clean_subject.strip()
-        log_info(logger, f"Using filename as subject: {data['subject']}")
+        logger.info(f"Using filename as subject: {data['subject']}")
 
     return data
 
 def extract_from_filename_bulletproof(filename):
     """Extract QA numbers from filename - multiple patterns."""
     try:
-        log_info(logger, f"Trying filename extraction on: {filename}")
+        logger.info(f"Trying filename extraction on: {filename}")
         
         # Pattern 1: QA_M105_2XD_0052_SB_rev.1.pdf
         match = re.search(r'QA_([A-Z]\d{2,4})_([A-Z0-9]{2,4})[-_](\d{4})', filename)
         if match:
             short_qa = match.group(1)  # M105
             full_qa = f"{match.group(2)}-{match.group(3)}"  # 2XD-0052
-            log_info(logger, f"Filename pattern 1 matched: {full_qa} ({short_qa})")
+            logger.info(f"Filename pattern 1 matched: {full_qa} ({short_qa})")
             return full_qa, short_qa
         
         # Pattern 2: QA_20146_E014-2LV-0032r2.pdf  
@@ -276,7 +276,7 @@ def extract_from_filename_bulletproof(filename):
         if match:
             short_qa = match.group(1)  # E014
             full_qa = f"{match.group(2)}-{match.group(3)}"  # 2LV-0032
-            log_info(logger, f"Filename pattern 2 matched: {full_qa} ({short_qa})")
+            logger.info(f"Filename pattern 2 matched: {full_qa} ({short_qa})")
             return full_qa, short_qa
         
         # Pattern 3: QA_P058_2XD-0116_SB.pdf
@@ -284,7 +284,7 @@ def extract_from_filename_bulletproof(filename):
         if match:
             short_qa = match.group(1)  # P058
             full_qa = f"{match.group(2)}-{match.group(3)}"  # 2XD-0116
-            log_info(logger, f"Filename pattern 3 matched: {full_qa} ({short_qa})")
+            logger.info(f"Filename pattern 3 matched: {full_qa} ({short_qa})")
             return full_qa, short_qa
         
         # Pattern 4: Any QA_XXX_YYY pattern
@@ -292,12 +292,12 @@ def extract_from_filename_bulletproof(filename):
         if match:
             short_qa = match.group(1)
             full_qa = match.group(2).replace('_', '-')
-            log_info(logger, f"Filename pattern 4 matched: {full_qa} ({short_qa})")
+            logger.info(f"Filename pattern 4 matched: {full_qa} ({short_qa})")
             return full_qa, short_qa
             
-        log_warning(logger, f"No filename patterns matched for: {filename}")
+        logger.warning(f"No filename patterns matched for: {filename}")
         
     except Exception as e:
-        log_error(logger, f"Filename extraction error: {e}")
+        logger.error(f"Filename extraction error: {e}")
     
     return "", ""

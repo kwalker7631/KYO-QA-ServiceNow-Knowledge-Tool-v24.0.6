@@ -16,9 +16,6 @@ try:
     from file_utils import ensure_folders, cleanup_temp_files, open_file
     from logging_utils import (
         setup_logger,
-        log_info,
-        log_error,
-        log_exception,
         create_success_log,
         create_failure_log,
         LOG_DIR,

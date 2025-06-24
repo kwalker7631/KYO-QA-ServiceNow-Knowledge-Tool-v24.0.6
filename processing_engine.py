@@ -7,7 +7,7 @@ from pathlib import Path
 import fitz
 from datetime import datetime, timedelta
 
-from logging_utils import setup_logger, log_info, log_error, log_warning
+from logging_utils import setup_logger
 from custom_exceptions import *
 from file_utils import get_temp_dir, cleanup_temp_files, is_pdf, is_zip, save_txt
 from ocr_utils import extract_text_from_pdf
@@ -26,7 +26,7 @@ def _is_ocr_needed(pdf_path):
             text_content = "".join(page.get_text() for page in doc)
             return len(text_content.strip()) < 100
     except Exception as e:
-        log_warning(logger, f"Could not pre-check PDF {pdf_path.name}: {e}")
+        logger.warning(f"Could not pre-check PDF {pdf_path.name}: {e}")
         return True
 
 def process_single_pdf(pdf_path, txt_output_dir, progress_cb, ocr_cb, cancel_event):
@@ -35,12 +35,12 @@ def process_single_pdf(pdf_path, txt_output_dir, progress_cb, ocr_cb, cancel_eve
         return None
         
     filename = Path(pdf_path).name
-    log_info(logger, f"Processing PDF: {filename}")
+    logger.info(f"Processing PDF: {filename}")
 
     # Extract text
     if _is_ocr_needed(pdf_path):
         ocr_cb(True)
-        log_info(logger, f"OCR required for {filename}.")
+        logger.info(f"OCR required for {filename}.")
     
     extracted_text = extract_text_from_pdf(pdf_path)
     ocr_cb(False)
@@ -49,7 +49,7 @@ def process_single_pdf(pdf_path, txt_output_dir, progress_cb, ocr_cb, cancel_eve
         return None
 
     if not extracted_text:
-        log_warning(logger, f"No text could be extracted from {filename}. Skipping.")
+        logger.warning(f"No text could be extracted from {filename}. Skipping.")
         return create_error_record(filename, "TEXT EXTRACTION FAILED")
 
     # Save extracted text for debugging
@@ -62,11 +62,11 @@ def process_single_pdf(pdf_path, txt_output_dir, progress_cb, ocr_cb, cancel_eve
     extracted_data = ai_extract(extracted_text, Path(pdf_path))
     
     # Log what we extracted for debugging
-    log_info(logger, f"Raw extracted data for {filename}:")
-    log_info(logger, f"  Full QA: '{extracted_data.get('full_qa_number', '')}'")
-    log_info(logger, f"  Short QA: '{extracted_data.get('short_qa_number', '')}'") 
-    log_info(logger, f"  Models: '{extracted_data.get('models', '')}'")
-    log_info(logger, f"  Subject: '{extracted_data.get('subject', '')}'")
+    logger.info(f"Raw extracted data for {filename}:")
+    logger.info(f"  Full QA: '{extracted_data.get('full_qa_number', '')}'")
+    logger.info(f"  Short QA: '{extracted_data.get('short_qa_number', '')}'") 
+    logger.info(f"  Models: '{extracted_data.get('models', '')}'")
+    logger.info(f"  Subject: '{extracted_data.get('subject', '')}'")
 
     # Validate and enhance the data
     validated_data = validate_and_enhance_data(extracted_data, filename)
@@ -148,7 +148,7 @@ def validate_and_enhance_data(extracted_data, filename):
             date_obj = datetime.strptime(extracted_data["published_date"], "%Y-%m-%d")
             extracted_data["published_date"] = date_obj.strftime("%Y-%m-%d")
         except ValueError:
-            log_warning(logger, f"Invalid date format: {extracted_data['published_date']}")
+            logger.warning(f"Invalid date format: {extracted_data['published_date']}")
             extracted_data["published_date"] = ""
     
     # Clean up models
@@ -161,9 +161,9 @@ def validate_and_enhance_data(extracted_data, filename):
         models_clean = models_clean.rstrip('.,;')
         extracted_data["models"] = models_clean
         
-        log_info(logger, f"Cleaned models for {filename}: '{models_clean}'")
+        logger.info(f"Cleaned models for {filename}: '{models_clean}'")
     else:
-        log_warning(logger, f"No models found for {filename}")
+        logger.warning(f"No models found for {filename}")
     
     # Clean up subject
     if extracted_data["subject"] and extracted_data["subject"] != "Not Found":
@@ -198,7 +198,7 @@ def map_to_servicenow_format(extracted_data, filename):
         review_reasons.append("Missing Subject")
     
     if needs_review:
-        log_warning(logger, f"Flagging '{filename}' for review: {', '.join(review_reasons)}")
+        logger.warning(f"Flagging '{filename}' for review: {', '.join(review_reasons)}")
     
     # Build short description
     short_desc_parts = []
@@ -232,9 +232,9 @@ def map_to_servicenow_format(extracted_data, filename):
     models_data = ""
     if extracted_data.get("models") and extracted_data["models"] not in ["Not Found", ""]:
         models_data = extracted_data["models"]
-        log_info(logger, f"Setting models data for {filename}: '{models_data}'")
+        logger.info(f"Setting models data for {filename}: '{models_data}'")
     else:
-        log_warning(logger, f"No models data to set for {filename}")
+        logger.warning(f"No models data to set for {filename}")
         
     # Build the 'Meta Description' field from the short QA number
     meta_description_data = "QA"
@@ -279,11 +279,11 @@ def map_to_servicenow_format(extracted_data, filename):
     }
     
     # Log the final mapping for debugging
-    log_info(logger, f"Final ServiceNow record for {filename}:")
-    log_info(logger, f"  Meta: '{servicenow_record['Meta']}'") 
-    log_info(logger, f"  Meta Description: '{servicenow_record['Meta Description']}'")
-    log_info(logger, f"  models: '{servicenow_record['models']}'")
-    log_info(logger, f"  Short description: '{servicenow_record['Short description'][:100]}...'")
+    logger.info(f"Final ServiceNow record for {filename}:")
+    logger.info(f"  Meta: '{servicenow_record['Meta']}'") 
+    logger.info(f"  Meta Description: '{servicenow_record['Meta Description']}'")
+    logger.info(f"  models: '{servicenow_record['models']}'")
+    logger.info(f"  Short description: '{servicenow_record['Short description'][:100]}...'")
     
     return servicenow_record
 
@@ -292,7 +292,7 @@ def process_zip_file(zip_path, temp_dir, txt_output_dir, progress_cb, ocr_cb, ca
     if cancel_event.is_set(): 
         return []
         
-    log_info(logger, f"Processing ZIP file: {zip_path.name}")
+    logger.info(f"Processing ZIP file: {zip_path.name}")
     results = []
     
     try:
@@ -301,7 +301,7 @@ def process_zip_file(zip_path, temp_dir, txt_output_dir, progress_cb, ocr_cb, ca
                               if is_pdf(f) and not f.startswith('__MACOSX')]
             
             if not pdf_files_in_zip:
-                log_warning(logger, f"No PDF files found in {zip_path.name}.")
+                logger.warning(f"No PDF files found in {zip_path.name}.")
                 return []
             
             extraction_path = temp_dir / zip_path.stem
@@ -318,10 +318,10 @@ def process_zip_file(zip_path, temp_dir, txt_output_dir, progress_cb, ocr_cb, ca
         return results
         
     except zipfile.BadZipFile:
-        log_error(logger, f"File is not a valid ZIP file: {zip_path.name}")
+        logger.error(f"File is not a valid ZIP file: {zip_path.name}")
         return []
     except Exception as e:
-        log_error(logger, f"Failed to process ZIP file {zip_path.name}: {e}")
+        logger.error(f"Failed to process ZIP file {zip_path.name}: {e}")
         return []
 
 def _process_file_list(file_list, temp_dir, txt_output_dir, progress_cb, ocr_cb, cancel_event):
@@ -331,7 +331,7 @@ def _process_file_list(file_list, temp_dir, txt_output_dir, progress_cb, ocr_cb,
 
     for i, file_path in enumerate(file_list):
         if cancel_event.is_set():
-            log_warning(logger, "Cancellation signal received. Stopping process.")
+            logger.warning("Cancellation signal received. Stopping process.")
             break
         
         progress_cb(f"Processing file {i+1}/{total_files}: {file_path.name}")
@@ -345,7 +345,7 @@ def _process_file_list(file_list, temp_dir, txt_output_dir, progress_cb, ocr_cb,
                 results = process_zip_file(file_path, temp_dir, txt_output_dir, progress_cb, ocr_cb, cancel_event)
                 all_results.extend(results)
         except Exception as e:
-            log_error(logger, f"Critical error processing file {file_path.name}: {e}")
+            logger.error(f"Critical error processing file {file_path.name}: {e}")
             failed_files.append(file_path.name)
 
     return all_results, failed_files
@@ -358,7 +358,7 @@ def process_files(folder, excel_path, template_path, progress_cb, ocr_cb, cancel
     txt_output_dir.mkdir(exist_ok=True)
     
     files_to_process = [f for f in source_folder.iterdir() if is_pdf(f) or is_zip(f)]
-    log_info(logger, f"Found {len(files_to_process)} files to process")
+    logger.info(f"Found {len(files_to_process)} files to process")
 
     all_results, failed_files = _process_file_list(files_to_process, temp_dir, txt_output_dir, progress_cb, ocr_cb, cancel_event)
 
@@ -366,10 +366,10 @@ def process_files(folder, excel_path, template_path, progress_cb, ocr_cb, cancel
 
     final_excel_path = None
     if all_results and not cancel_event.is_set():
-        log_info(logger, f"Generating Excel file for {len(all_results)} processed documents.")
+        logger.info(f"Generating Excel file for {len(all_results)} processed documents.")
         final_excel_path = generate_excel(all_results, excel_path, template_path)
     else:
-        log_warning(logger, "No data processed or process was cancelled. Excel file not generated.")
+        logger.warning("No data processed or process was cancelled. Excel file not generated.")
 
     review_list = [r["file_name"] for r in all_results if r.get("needs_review")]
     return final_excel_path, review_list, len(failed_files)
@@ -381,16 +381,16 @@ def process_pdf_list(pdf_paths, excel_path, template_path, progress_cb, ocr_cb, 
     txt_output_dir.mkdir(exist_ok=True)
     
     files_to_process = [Path(p) for p in pdf_paths]
-    log_info(logger, f"Processing {len(files_to_process)} individual files")
+    logger.info(f"Processing {len(files_to_process)} individual files")
 
     all_results, failed_files = _process_file_list(files_to_process, temp_dir, txt_output_dir, progress_cb, ocr_cb, cancel_event)
 
     final_excel_path = None
     if all_results and not cancel_event.is_set():
-        log_info(logger, f"Generating Excel file for {len(all_results)} processed documents.")
+        logger.info(f"Generating Excel file for {len(all_results)} processed documents.")
         final_excel_path = generate_excel(all_results, excel_path, template_path)
     else:
-        log_warning(logger, "No data processed or process was cancelled. Excel file not generated.")
+        logger.warning("No data processed or process was cancelled. Excel file not generated.")
 
     review_list = [r["file_name"] for r in all_results if r.get("needs_review")]
     return final_excel_path, review_list, len(failed_files)

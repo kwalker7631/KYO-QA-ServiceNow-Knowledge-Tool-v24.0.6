@@ -4,7 +4,7 @@ from version import VERSION
 import fitz  # PyMuPDF
 import os
 from pathlib import Path
-from logging_utils import setup_logger, log_info, log_error, log_warning
+from logging_utils import setup_logger
 
 logger = setup_logger("ocr_utils")
 
@@ -26,25 +26,25 @@ def init_tesseract():
         for path in tesseract_paths:
             if os.path.exists(path):
                 pytesseract.pytesseract.tesseract_cmd = path
-                log_info(logger, f"Tesseract found at: {path}")
+                logger.info(f"Tesseract found at: {path}")
                 return True
                 
         # Try to run tesseract directly (Linux/Mac)
         try:
             output = os.popen("tesseract --version").read()
             if "tesseract" in output.lower():
-                log_info(logger, "Tesseract found in system PATH")
+                logger.info("Tesseract found in system PATH")
                 return True
         except:
             pass
             
-        log_warning(logger, "Tesseract OCR not found. Image-based OCR will be disabled.")
+        logger.warning("Tesseract OCR not found. Image-based OCR will be disabled.")
         return False
     except ImportError:
-        log_warning(logger, "pytesseract not installed. Image-based OCR will be disabled.")
+        logger.warning("pytesseract not installed. Image-based OCR will be disabled.")
         return False
     except Exception as e:
-        log_error(logger, f"Error initializing Tesseract: {e}")
+        logger.error(f"Error initializing Tesseract: {e}")
         return False
 
 # Initialize on module load
@@ -61,24 +61,24 @@ def extract_text_from_pdf(pdf_path: Path | str) -> str:
             
         # If we got meaningful text, return it
         if text and len(text.strip()) > 50:
-            log_info(logger, f"Extracted text directly from {pdf_path}")
+            logger.info(f"Extracted text directly from {pdf_path}")
             return text
             
         # If text extraction failed and Tesseract is available, try OCR
         if TESSERACT_AVAILABLE:
-            log_info(logger, f"Attempting OCR on {pdf_path}")
+            logger.info(f"Attempting OCR on {pdf_path}")
             return extract_text_with_ocr(pdf_path)
         else:
-            log_warning(logger, f"No text found in {pdf_path} and OCR not available")
+            logger.warning(f"No text found in {pdf_path} and OCR not available")
             return text
     except Exception as exc:
-        log_error(logger, f"Failed to extract text from {pdf_path}: {exc}")
+        logger.error(f"Failed to extract text from {pdf_path}: {exc}")
         return ""
 
 def extract_text_with_ocr(pdf_path: Path | str) -> str:
     """Extract text from PDF using OCR on rendered images."""
     if not TESSERACT_AVAILABLE:
-        log_warning(logger, "Tesseract OCR not available")
+        logger.warning("Tesseract OCR not available")
         return ""
         
     try:
@@ -98,13 +98,13 @@ def extract_text_with_ocr(pdf_path: Path | str) -> str:
                 page_text = pytesseract.image_to_string(img)
                 all_text.append(page_text)
                 
-                log_info(logger, f"OCR processed page {page_num+1} of {pdf_path}")
+                logger.info(f"OCR processed page {page_num+1} of {pdf_path}")
                 
         result = "\n\n".join(all_text)
-        log_info(logger, f"OCR extraction complete for {pdf_path}: {len(result)} chars")
+        logger.info(f"OCR extraction complete for {pdf_path}: {len(result)} chars")
         return result
     except Exception as e:
-        log_error(logger, f"OCR extraction failed for {pdf_path}: {e}")
+        logger.error(f"OCR extraction failed for {pdf_path}: {e}")
         return ""
 
 def get_pdf_metadata(pdf_path: Path | str) -> dict:
@@ -126,8 +126,8 @@ def get_pdf_metadata(pdf_path: Path | str) -> dict:
             "page_count": page_count
         }
         
-        log_info(logger, f"Extracted metadata from {pdf_path}")
+        logger.info(f"Extracted metadata from {pdf_path}")
         return result
     except Exception as e:
-        log_error(logger, f"Failed to extract metadata from {pdf_path}: {e}")
+        logger.error(f"Failed to extract metadata from {pdf_path}: {e}")
         return {}

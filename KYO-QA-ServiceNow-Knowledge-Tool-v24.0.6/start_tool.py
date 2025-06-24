@@ -9,7 +9,7 @@ import time
 import os
 import threading
 from pathlib import Path
-from logging_utils import setup_logger, log_info, log_error, log_warning
+from logging_utils import setup_logger
 
 logger = setup_logger("startup")
 
@@ -120,11 +120,11 @@ def check_python_version():
     if sys.version_info < (3, 11):
         spinner.stop()
         print_error(f"Python 3.11+ is required. Current: {sys.version}")
-        log_error(logger, f"Python 3.11+ is required. Current: {sys.version}")
+        logger.error(f"Python 3.11+ is required. Current: {sys.version}")
         sys.exit(1)
     
     spinner.stop(f"Python version {sys.version.split()[0]} is compatible.")
-    log_info(logger, f"Python version is {sys.version}")
+    logger.info(f"Python version is {sys.version}")
     print_success(f"Using Python {sys.version.split()[0]}")
 
 def check_existing_virtualenv():
@@ -134,7 +134,7 @@ def check_existing_virtualenv():
     
     if not venv_dir.exists():
         print_info("Virtual environment not found - will create new one")
-        log_info(logger, "No existing virtual environment found")
+        logger.info("No existing virtual environment found")
         return False
     
     # Check if Python executable exists in venv
@@ -144,7 +144,7 @@ def check_existing_virtualenv():
     
     if not venv_python.exists():
         print_warning("Virtual environment is incomplete - will recreate")
-        log_warning(logger, "Virtual environment Python executable not found")
+        logger.warning("Virtual environment Python executable not found")
         return False
     
     # Test if the venv Python actually works
@@ -160,18 +160,18 @@ def check_existing_virtualenv():
         if result.returncode == 0:
             spinner.stop("Virtual environment is valid")
             print_success("Existing virtual environment is working")
-            log_info(logger, "Virtual environment validation successful")
+            logger.info("Virtual environment validation successful")
             return True
         else:
             spinner.stop()
             print_warning("Virtual environment test failed - will recreate")
-            log_warning(logger, f"Virtual environment test failed: {result.stderr}")
+            logger.warning(f"Virtual environment test failed: {result.stderr}")
             return False
             
     except Exception as e:
         spinner.stop()
         print_warning(f"Virtual environment validation error - will recreate")
-        log_warning(logger, f"Virtual environment validation error: {e}")
+        logger.warning(f"Virtual environment validation error: {e}")
         return False
 
 def create_virtualenv():
@@ -187,11 +187,11 @@ def create_virtualenv():
             time.sleep(0.5)  # Pause for visual effect
             shutil.rmtree(venv_dir)
             spinner.stop("Old virtual environment removed")
-            log_info(logger, "Corrupted virtual environment removed")
+            logger.info("Corrupted virtual environment removed")
         except Exception as e:
             spinner.stop()
             print_error(f"Failed to remove existing environment: {e}")
-            log_error(logger, f"Failed to remove virtual environment: {e}")
+            logger.error(f"Failed to remove virtual environment: {e}")
             sys.exit(1)
     
     spinner.start("Creating new virtual environment...")
@@ -201,13 +201,13 @@ def create_virtualenv():
                             stdout=subprocess.DEVNULL, 
                             stderr=subprocess.DEVNULL)
         spinner.stop("Virtual environment created successfully")
-        log_info(logger, "Virtual environment created")
+        logger.info("Virtual environment created")
         print_success("Virtual environment ready")
         return True
     except Exception as e:
         spinner.stop()
         print_error(f"Failed to create virtual environment: {e}")
-        log_error(logger, f"Failed to create virtual environment: {e}")
+        logger.error(f"Failed to create virtual environment: {e}")
         sys.exit(1)
 
 def check_and_install_requirements():
@@ -221,7 +221,7 @@ def check_and_install_requirements():
         
     if not venv_python.exists():
         print_error("Could not locate virtual environment Python executable!")
-        log_error(logger, "Could not locate venv python executable!")
+        logger.error("Could not locate venv python executable!")
         sys.exit(1)
     
     req_file = Path(__file__).parent / "requirements.txt"
@@ -253,17 +253,17 @@ def check_and_install_requirements():
         if not missing_packages:
             spinner.stop("All critical packages are already installed")
             print_success("Dependencies are up to date - skipping installation")
-            log_info(logger, "All required packages already installed")
+            logger.info("All required packages already installed")
             return
         else:
             spinner.stop()
             print_info(f"Missing packages: {', '.join(missing_packages)}")
-            log_info(logger, f"Missing packages detected: {missing_packages}")
+            logger.info(f"Missing packages detected: {missing_packages}")
             
     except Exception as e:
         spinner.stop()
         print_warning(f"Package check failed: {e}")
-        log_warning(logger, f"Package check failed: {e}")
+        logger.warning(f"Package check failed: {e}")
     
     # Upgrade pip first
     spinner = ConsoleSpinner()
@@ -279,7 +279,7 @@ def check_and_install_requirements():
     except Exception as e:
         spinner.stop()
         print_warning(f"Failed to upgrade pip: {e}")
-        log_warning(logger, f"Failed to upgrade pip: {e}")
+        logger.warning(f"Failed to upgrade pip: {e}")
         # Continue anyway, this is not critical
     
     # Install requirements with progress tracking
@@ -297,16 +297,16 @@ def check_and_install_requirements():
         if install_process.returncode == 0:
             spinner.stop("Package installation completed")
             print_success("All packages installed successfully")
-            log_info(logger, "Requirements installation completed")
+            logger.info("Requirements installation completed")
         else:
             spinner.stop()
             print_warning("Some packages may have failed to install")
-            log_warning(logger, f"Package installation warnings: {install_process.stderr}")
+            logger.warning(f"Package installation warnings: {install_process.stderr}")
             # Continue anyway - some packages might still work
         
     except Exception as e:
         print_error(f"Failed to install requirements: {e}")
-        log_error(logger, f"Failed to install requirements: {e}")
+        logger.error(f"Failed to install requirements: {e}")
         print_info("You may need to install packages manually")
 
 
@@ -333,7 +333,7 @@ def run_app():
     try:
         time.sleep(1)  # Small pause for visual effect
         spinner.stop("Application ready!")
-        log_info(logger, f"Launching main app: {app_file}")
+        logger.info(f"Launching main app: {app_file}")
         
         # Print a final message
         print("\n" + "=" * 70)
@@ -346,12 +346,12 @@ def run_app():
     except subprocess.CalledProcessError as e:
         spinner.stop()
         print_error(f"Application failed to start: {e}")
-        log_error(logger, f"Application failed to start: {e}")
+        logger.error(f"Application failed to start: {e}")
         sys.exit(1)
     except Exception as e:
         spinner.stop()
         print_error(f"Failed to launch application: {e}")
-        log_error(logger, f"Failed to launch application: {e}")
+        logger.error(f"Failed to launch application: {e}")
         sys.exit(1)
 
 def main(cli_args=None):
@@ -378,15 +378,15 @@ def main(cli_args=None):
         # Launch the application
         run_app()
         
-        log_info(logger, "Setup and launch complete. Exiting normally.")
+        logger.info("Setup and launch complete. Exiting normally.")
         
     except KeyboardInterrupt:
         print(f"\n{COLOR_WARNING}Setup interrupted by user.{COLOR_RESET}")
-        log_warning(logger, "Setup interrupted by user")
+        logger.warning("Setup interrupted by user")
         sys.exit(1)
     except Exception as e:
         print_error(f"Unexpected error: {e}")
-        log_error(logger, f"Unexpected setup error: {e}")
+        logger.error(f"Unexpected setup error: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
