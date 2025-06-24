@@ -22,3 +22,14 @@ def test_generate_excel_no_template_returns_path(tmp_path):
     wb = openpyxl.load_workbook(out_file)
     sheet = wb.active
     assert sheet["A2"].alignment.wrap_text
+
+
+def test_column_width_expands_with_long_value(tmp_path):
+    long_text = "A" * 40
+    data = [{"A": long_text}]
+    out_file = tmp_path / "long.xlsx"
+    generate_excel(data, out_file, None)
+    wb = openpyxl.load_workbook(out_file)
+    sheet = wb.active
+    width = sheet.column_dimensions["A"].width
+    assert width and width > 20
