@@ -12,7 +12,7 @@ import re
 
 # --- Safe Import with Fallbacks ---
 try:
-    from processing_engine import process_files, process_pdf_list
+    from processing_engine import process_files, process_paths
     from file_utils import ensure_folders, cleanup_temp_files, open_file
     from logging_utils import (
         setup_logger,
@@ -42,7 +42,7 @@ except ImportError as e:
             ocr_cb(False)
         return excel_path, ["review_doc.pdf"], max(0, random.randint(-1, 1))
 
-    def process_pdf_list(files, excel_path, template_path, progress_cb, ocr_cb, cancel_event):
+    def process_paths(files, excel_path, template_path, progress_cb, ocr_cb, cancel_event):
         for i, f in enumerate(files):
             if cancel_event.is_set():
                 break
@@ -878,7 +878,7 @@ class KyoQAToolApp(tk.Tk):
                 if hasattr(self, 'progress_frame'):
                     self.after(0, lambda: self.progress_frame.show(file_count))
                 
-                self.result_file, review_files, fail_count = process_pdf_list(
+                self.result_file, review_files, fail_count = process_paths(
                     self.selected_files, excel_path, template_path, progress_cb, ocr_cb, self.cancel_event
                 )
 

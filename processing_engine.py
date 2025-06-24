@@ -331,8 +331,13 @@ def process_zip_file(zip_path, temp_dir, txt_output_dir, progress_cb, ocr_cb, ca
         log_error(logger, f"Failed to process ZIP file {zip_path.name}: {e}")
         return []
 
-def _process_file_list(file_list, temp_dir, txt_output_dir, progress_cb, ocr_cb, cancel_event):
-    """Helper function to iterate through a list of files and process them."""
+def process_paths(paths, excel_path, template_path, progress_cb, ocr_cb, cancel_event):
+    """Process a list of PDF or ZIP paths and return Excel path, review list and failure count."""
+    temp_dir = get_temp_dir()
+    txt_output_dir = Path.cwd() / "PDF_TXT"
+    txt_output_dir.mkdir(exist_ok=True)
+
+    file_list = [Path(p) for p in paths]
     all_results, failed_files = [], []
     total_files = len(file_list)
 
@@ -340,13 +345,13 @@ def _process_file_list(file_list, temp_dir, txt_output_dir, progress_cb, ocr_cb,
         if cancel_event.is_set():
             log_warning(logger, "Cancellation signal received. Stopping process.")
             break
-        
+
         progress_cb(f"Processing file {i+1}/{total_files}: {file_path.name}")
-        
+
         try:
             if is_pdf(file_path):
                 result = process_single_pdf(file_path, txt_output_dir, progress_cb, ocr_cb, cancel_event)
-                if result: 
+                if result:
                     all_results.append(result)
             elif is_zip(file_path):
                 results = process_zip_file(file_path, temp_dir, txt_output_dir, progress_cb, ocr_cb, cancel_event)
@@ -354,20 +359,6 @@ def _process_file_list(file_list, temp_dir, txt_output_dir, progress_cb, ocr_cb,
         except Exception as e:
             log_error(logger, f"Critical error processing file {file_path.name}: {e}")
             failed_files.append(file_path.name)
-
-    return all_results, failed_files
-
-def process_files(folder, excel_path, template_path, progress_cb, ocr_cb, cancel_event):
-    """Main entry point to process all PDF and ZIP files in a given folder."""
-    source_folder = Path(folder)
-    temp_dir = get_temp_dir()
-    txt_output_dir = Path.cwd() / "PDF_TXT"
-    txt_output_dir.mkdir(exist_ok=True)
-    
-    files_to_process = [f for f in source_folder.iterdir() if is_pdf(f) or is_zip(f)]
-    log_info(logger, f"Found {len(files_to_process)} files to process")
-
-    all_results, failed_files = _process_file_list(files_to_process, temp_dir, txt_output_dir, progress_cb, ocr_cb, cancel_event)
 
     cleanup_temp_files(temp_dir)
 
@@ -381,23 +372,9 @@ def process_files(folder, excel_path, template_path, progress_cb, ocr_cb, cancel
     review_list = [r["file_name"] for r in all_results if r.get("needs_review")]
     return final_excel_path, review_list, len(failed_files)
 
-def process_pdf_list(pdf_paths, excel_path, template_path, progress_cb, ocr_cb, cancel_event):
-    """Main entry point to process a specific list of PDF files."""
-    temp_dir = get_temp_dir()
-    txt_output_dir = Path.cwd() / "PDF_TXT"
-    txt_output_dir.mkdir(exist_ok=True)
-    
-    files_to_process = [Path(p) for p in pdf_paths]
-    log_info(logger, f"Processing {len(files_to_process)} individual files")
-
-    all_results, failed_files = _process_file_list(files_to_process, temp_dir, txt_output_dir, progress_cb, ocr_cb, cancel_event)
-
-    final_excel_path = None
-    if all_results and not cancel_event.is_set():
-        log_info(logger, f"Generating Excel file for {len(all_results)} processed documents.")
-        final_excel_path = generate_excel(all_results, excel_path, template_path)
-    else:
-        log_warning(logger, "No data processed or process was cancelled. Excel file not generated.")
-
-    review_list = [r["file_name"] for r in all_results if r.get("needs_review")]
-    return final_excel_path, review_list, len(failed_files)
+def process_files(folder, excel_path, template_path, progress_cb, ocr_cb, cancel_event):
+    """Gather PDF/ZIP files from a folder and delegate processing."""
+    source_folder = Path(folder)
+    files_to_process = [f for f in source_folder.iterdir() if is_pdf(f) or is_zip(f)]
+    log_info(logger, f"Found {len(files_to_process)} files to process")
+    return process_paths(files_to_process, excel_path, template_path, progress_cb, ocr_cb, cancel_event)
