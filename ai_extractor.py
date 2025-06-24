@@ -1,5 +1,4 @@
 # KYO QA ServiceNow AI Extractor - SYNTAX FIXED VERSION
-from version import VERSION
 import re
 from datetime import datetime
 from logging_utils import setup_logger, log_info, log_error, log_warning
@@ -72,9 +71,9 @@ def bulletproof_extraction(text, filename):
     log_info(logger, f"Starting bulletproof extraction for: {filename}")
     log_info(logger, f"Text length: {len(text)} characters")
     
-    # Show first 500 chars for debugging
+    # Only log the presence of text to avoid leaking PDF content
     if len(text) > 0:
-        log_info(logger, f"Text preview: {repr(text[:500])}")
+        log_info(logger, f"Text available for {filename} ({len(text)} characters)")
     else:
         log_warning(logger, f"No text to process for {filename}")
         return data
