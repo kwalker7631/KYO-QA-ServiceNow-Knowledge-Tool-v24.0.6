@@ -264,9 +264,6 @@ def check_and_install_requirements():
     spinner.start("Checking existing packages...")
     
     try:
-        # Read requirements
-        with open(req_file, 'r') as f:
-            requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
         
         # Test critical packages
         critical_packages = ['pandas', 'PyMuPDF', 'openpyxl']
