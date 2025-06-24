@@ -96,15 +96,15 @@ This tool extracts model info, QA/SB numbers, and descriptions from Kyocera QA/s
 
 ### Install Dependencies
 If you plan to run or test the tool locally, first install the required Python
-packages with the helper script:
+packages with `pip`:
 
 ```bash
-cd KYO_QA_ServiceNow_Knowledge_Tool_v24.0.1
-./scripts/setup_env.sh
+pip install -r requirements.txt
 ```
 
-The test suite relies on these packages, so make sure to run the script before
-executing `pytest`.
+The unit tests need additional packages such as `openpyxl` (for reading the
+generated spreadsheets) and `PyMuPDF`. These are all listed in
+`requirements.txt`, so install them before running `pytest`.
 
 ### Development and Testing
 After installing the dependencies, run the test suite with:
