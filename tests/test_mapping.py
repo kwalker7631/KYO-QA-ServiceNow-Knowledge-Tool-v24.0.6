@@ -1,7 +1,15 @@
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from processing_engine import map_to_servicenow_format
+import types
+sys.modules.setdefault('fitz', types.SimpleNamespace(open=lambda *a, **k: None))
+import pytest
+try:
+    import pandas
+    import openpyxl
+except ImportError:
+    pytest.skip("pandas/openpyxl missing", allow_module_level=True)
+from kyoqa.processing_engine import map_to_servicenow_format
 
 
 def test_map_to_servicenow_flags_missing_fields():

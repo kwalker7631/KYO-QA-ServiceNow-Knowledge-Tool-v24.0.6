@@ -9,7 +9,7 @@ import shutil
 import time
 import threading
 from pathlib import Path
-from logging_utils import setup_logger, log_info, log_error, log_warning
+from kyoqa.logging_utils import setup_logger, log_info, log_error, log_warning
 
 logger = setup_logger("startup")
 
@@ -355,7 +355,7 @@ def run_app():
     if not venv_python.exists():
         venv_python = Path(__file__).parent / "venv" / "bin" / "python3"
         
-    app_file = Path(__file__).parent / "kyo_qa_tool_app.py"
+    app_file = Path(__file__).parent / "kyoqa" / "kyo_qa_tool_app.py"
     
     spinner = ConsoleSpinner()
     spinner.start("Starting KYO QA ServiceNow Knowledge Tool...")

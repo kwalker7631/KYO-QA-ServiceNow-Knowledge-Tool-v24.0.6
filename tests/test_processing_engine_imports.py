@@ -1,14 +1,22 @@
 import importlib
 import os
 import sys
+import types
+import pytest
 
 # Ensure the project root is on the import path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.modules.setdefault('fitz', types.SimpleNamespace(open=lambda *a, **k: None))
+try:
+    import pandas
+    import openpyxl
+except ImportError:
+    pytest.skip("pandas/openpyxl missing", allow_module_level=True)
 
-import custom_exceptions
+import kyoqa.custom_exceptions as custom_exceptions
 
 # Ensure processing_engine exposes same exception classes
-processing_engine = importlib.import_module('processing_engine')
+processing_engine = importlib.import_module('kyoqa.processing_engine')
 
 
 def test_exception_exports():

@@ -1,7 +1,7 @@
 # KYO QA ServiceNow Data Harvesters
 import re
-from logging_utils import setup_logger, log_info, log_error, log_warning
-from config import (
+from .logging_utils import setup_logger, log_info, log_error, log_warning
+from .config import (
     DATE_PATTERNS,
     SUBJECT_PATTERNS,
     STANDARDIZATION_RULES,

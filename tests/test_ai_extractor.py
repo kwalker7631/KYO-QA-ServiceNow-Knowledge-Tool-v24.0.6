@@ -6,17 +6,20 @@ import sys
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, BASE_DIR)
 
-sys.modules['ocr_utils'] = types.SimpleNamespace(get_pdf_metadata=lambda x: {})
-sys.modules['data_harvesters'] = types.SimpleNamespace(identify_document_type=lambda x: '')
-sys.modules['logging_utils'] = types.SimpleNamespace(
+sys.modules['kyoqa.ocr_utils'] = types.SimpleNamespace(
+    get_pdf_metadata=lambda x: {},
+    extract_text_from_pdf=lambda x: ""
+)
+sys.modules['kyoqa.data_harvesters'] = types.SimpleNamespace(identify_document_type=lambda x: '')
+sys.modules['kyoqa.logging_utils'] = types.SimpleNamespace(
     setup_logger=lambda name: None,
     log_info=lambda *args, **kwargs: None,
     log_error=lambda *args, **kwargs: None,
     log_warning=lambda *args, **kwargs: None,
 )
-sys.modules['config'] = types.SimpleNamespace(STANDARDIZATION_RULES={"default_author": ""})
+sys.modules['kyoqa.config'] = types.SimpleNamespace(STANDARDIZATION_RULES={"default_author": ""})
 
-from ai_extractor import extract_qa_numbers, extract_models, extract_dates
+from kyoqa.ai_extractor import extract_qa_numbers, extract_models, extract_dates
 
 SAMPLE_TEXT = """
 Service Bulletin
@@ -41,3 +44,13 @@ def test_extract_models():
 def test_extract_dates():
     date = extract_dates(SAMPLE_TEXT, "dummy.pdf")
     assert date == "2023-01-05"
+
+
+def teardown_module(module):
+    for mod in [
+        'kyoqa.ocr_utils',
+        'kyoqa.data_harvesters',
+        'kyoqa.logging_utils',
+        'kyoqa.config',
+    ]:
+        sys.modules.pop(mod, None)

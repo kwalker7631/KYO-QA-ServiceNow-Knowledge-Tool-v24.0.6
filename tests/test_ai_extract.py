@@ -18,7 +18,7 @@ class DummyDoc:
 fitz_stub.open = lambda *args, **kwargs: DummyDoc()
 sys.modules.setdefault('fitz', fitz_stub)
 
-import ai_extractor
+from kyoqa import ai_extractor
 
 
 def test_ai_extract_basic(monkeypatch, tmp_path):

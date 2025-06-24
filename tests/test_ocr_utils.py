@@ -1,10 +1,15 @@
 import unittest
 from pathlib import Path
-import fitz
-import ocr_utils
+try:
+    import fitz
+except ImportError:  # pragma: no cover - skip if PyMuPDF missing
+    fitz = None
+from kyoqa import ocr_utils
 
 class TestOCRUtilsLogging(unittest.TestCase):
     def setUp(self):
+        if fitz is None or not hasattr(fitz, "open") or not hasattr(fitz, "Document"):
+            self.skipTest("PyMuPDF not installed")
         self.pdf_path = Path("test_sample.pdf")
         doc = fitz.open()
         page = doc.new_page()

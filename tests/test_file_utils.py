@@ -1,4 +1,4 @@
-import file_utils
+from kyoqa import file_utils
 
 
 def test_is_pdf():

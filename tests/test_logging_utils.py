@@ -1,7 +1,9 @@
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import os
 from pathlib import Path
-from logging_utils import create_success_log, create_failure_log
+if 'kyoqa.logging_utils' in sys.modules:
+    del sys.modules['kyoqa.logging_utils']
+from kyoqa.logging_utils import create_success_log, create_failure_log
 
 
 def test_create_success_log(tmp_path):

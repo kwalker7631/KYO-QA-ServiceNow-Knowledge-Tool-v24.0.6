@@ -2,14 +2,14 @@ import importlib
 import pytest
 
 modules = [
-    'processing_engine',
-    'config',
-    'custom_exceptions',
-    'ai_extractor',
-    'excel_generator',
-    'file_utils',
-    'data_harvesters',
-    'ocr_utils'
+    'kyoqa.processing_engine',
+    'kyoqa.config',
+    'kyoqa.custom_exceptions',
+    'kyoqa.ai_extractor',
+    'kyoqa.excel_generator',
+    'kyoqa.file_utils',
+    'kyoqa.data_harvesters',
+    'kyoqa.ocr_utils'
 ]
 
 @pytest.mark.parametrize('module_name', modules)

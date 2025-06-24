@@ -12,9 +12,9 @@ import re
 
 # --- Safe Import with Fallbacks ---
 try:
-    from processing_engine import process_files, process_pdf_list
-    from file_utils import ensure_folders, cleanup_temp_files, open_file
-    from logging_utils import (
+    from .processing_engine import process_files, process_pdf_list
+    from .file_utils import ensure_folders, cleanup_temp_files, open_file
+    from .logging_utils import (
         setup_logger,
         log_info,
         log_error,

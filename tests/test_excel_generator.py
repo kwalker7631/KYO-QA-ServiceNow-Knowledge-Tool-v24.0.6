@@ -1,11 +1,19 @@
 import sys
 from pathlib import Path
+import pytest
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-import openpyxl
-from excel_generator import generate_excel
+try:
+    import pandas
+    import openpyxl
+except ImportError:
+    pytest.skip("pandas/openpyxl missing", allow_module_level=True)
+
+from kyoqa.excel_generator import generate_excel
 
 
 def test_generate_excel_writes_rows(tmp_path):
+    if openpyxl is None:
+        pytest.skip("openpyxl not installed")
     headers = ["Active", "Article type", "Author"]
     template = tmp_path / "template.xlsx"
     wb = openpyxl.Workbook()
