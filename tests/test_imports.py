@@ -5,7 +5,7 @@ modules = [
     'processing_engine',
     'config',
     'custom_exceptions',
-    'ai_extractor',
+    'extract.ai_extractor',
     'excel_generator',
     'file_utils',
     'data_harvesters',
