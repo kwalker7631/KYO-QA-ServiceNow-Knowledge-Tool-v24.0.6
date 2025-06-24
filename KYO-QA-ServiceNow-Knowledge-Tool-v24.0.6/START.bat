@@ -25,7 +25,7 @@ echo.
 
 echo --- Environment check passed. Starting Python setup... ---
 echo.
-py.exe run.py
+py.exe start_tool.py
 
 :end_script
 echo --------------------------------------------------------
