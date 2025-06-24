@@ -1,5 +1,7 @@
 # KYO QA ServiceNow Excel Generator v24.0.6
-import pandas as pd, shutil, openpyxl
+import pandas as pd
+import shutil
+import openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import Alignment, PatternFill
 from logging_utils import setup_logger, log_info, log_error, log_warning
@@ -10,29 +12,53 @@ logger = setup_logger("excel_generator")
 # Default cell styling
 REVIEW_FILL = PatternFill(start_color="FFF3BF", end_color="FFF3BF", fill_type="solid")
 
-def _apply_formatting(sheet: openpyxl.worksheet.worksheet.Worksheet):
-    """Apply default formatting to the given worksheet."""
-    # Ensure columns have a reasonable width
-    for cell in sheet[1]:
-        col_dim = sheet.column_dimensions[cell.column_letter]
-        if not col_dim.width or col_dim.width <= 8.43:
-            col_dim.width = max(len(str(cell.value)) + 2, 15)
 
-    # Determine index of needs_review column if present
+def _set_column_widths(sheet: openpyxl.worksheet.worksheet.Worksheet):
+    """Auto-fit column widths based on cell content."""
+    for column_cells in sheet.columns:
+        max_length = 0
+        column_letter = column_cells[0].column_letter
+        for cell in column_cells:
+            if cell.value is not None:
+                cell_len = len(str(cell.value))
+                if cell_len > max_length:
+                    max_length = cell_len
+        if max_length:
+            sheet.column_dimensions[column_letter].width = max(max_length + 2, 15)
+
+
+def _apply_conditional_fills(sheet: openpyxl.worksheet.worksheet.Worksheet):
+    """Highlight rows needing review or failing status."""
     review_idx = None
+    status_idx = None
     for idx, cell in enumerate(sheet[1], start=1):
-        if str(cell.value).lower() == "needs_review":
+        header = str(cell.value).lower()
+        if header == "needs_review":
             review_idx = idx
-            break
+        if header == "status":
+            status_idx = idx
 
-    # Apply wrap text and conditional fill for each data row
+    for row in sheet.iter_rows(min_row=2):
+        flag = False
+        if review_idx and str(row[review_idx - 1].value).lower() in {"true", "needs_review", "1"}:
+            flag = True
+        if status_idx:
+            status_val = str(row[status_idx - 1].value).lower()
+            if status_val and status_val not in {"success", "ok", ""}:
+                flag = True
+        if flag:
+            for cell in row:
+                cell.fill = REVIEW_FILL
+
+def _apply_formatting(sheet: openpyxl.worksheet.worksheet.Worksheet):
+    """Apply default formatting and highlight review rows."""
+    _set_column_widths(sheet)
+
     for row in sheet.iter_rows(min_row=2):
         for cell in row:
             cell.alignment = Alignment(wrap_text=True)
 
-        if review_idx and str(row[review_idx - 1].value).lower() in {"true", "needs_review", "1"}:
-            for cell in row:
-                cell.fill = REVIEW_FILL
+    _apply_conditional_fills(sheet)
 
 def _use_template_excel(df, output_path, template_path):
     """Write DataFrame to an Excel file based on an existing template."""
