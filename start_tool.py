@@ -4,9 +4,9 @@ import argparse
 
 import sys
 import subprocess
-import importlib.metadata
 import shutil
 import time
+import os
 import threading
 from pathlib import Path
 from logging_utils import setup_logger, log_info, log_error, log_warning
@@ -15,39 +15,6 @@ logger = setup_logger("startup")
 
 LOGS_DIR = Path(__file__).parent / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
-
-# Basic package check used by legacy launcher
-REQUIRED_PACKAGES = ["pandas", "openpyxl", "PyMuPDF", "pytesseract"]
-
-def check_and_install_packages():
-    """Ensure core packages are installed using the system Python."""
-    print(f"--- Python Package Setup (v{VERSION}) ---")
-    all_ready = True
-    for i, package in enumerate(REQUIRED_PACKAGES, 1):
-        try:
-            importlib.metadata.version(package)
-            print(f"[{i}/{len(REQUIRED_PACKAGES)}] Found {package}")
-        except importlib.metadata.PackageNotFoundError:
-            print(
-                f"[{i}/{len(REQUIRED_PACKAGES)}] Missing {package}. Attempting to install..."
-            )
-            print("-" * 60)
-            try:
-                subprocess.run([
-                    sys.executable,
-                    "-m",
-                    "pip",
-                    "install",
-                    package,
-                ], check=True)
-                print("-" * 60)
-                print(f"    [SUCCESS] Installed {package}")
-            except subprocess.CalledProcessError:
-                print("-" * 60)
-                print(f"    [ERROR] FAILED to install {package}.")
-                all_ready = False
-                break
-    return all_ready
 
 # Colors for console output (Windows and ANSI)
 try:
@@ -203,7 +170,7 @@ def check_existing_virtualenv():
             
     except Exception as e:
         spinner.stop()
-        print_warning("Virtual environment validation error - will recreate")
+        print_warning(f"Virtual environment validation error - will recreate")
         log_warning(logger, f"Virtual environment validation error: {e}")
         return False
 
@@ -264,6 +231,9 @@ def check_and_install_requirements():
     spinner.start("Checking existing packages...")
     
     try:
+        # Read requirements
+        with open(req_file, 'r') as f:
+            requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
         
         # Test critical packages
         critical_packages = ['pandas', 'PyMuPDF', 'openpyxl']

@@ -1,4 +1,5 @@
 # KYO QA ServiceNow OCR Utilities
+from version import VERSION
 
 import fitz  # PyMuPDF
 import os
@@ -13,6 +14,8 @@ def init_tesseract():
     try:
         # Try to import pytesseract
         import pytesseract
+        from PIL import Image
+        import io
         
         # Check common Windows paths
         tesseract_paths = [
@@ -51,30 +54,25 @@ def extract_text_from_pdf(pdf_path: Path | str) -> str:
     """Extract text from a PDF file, using OCR if needed."""
     try:
         pdf_path = Path(pdf_path)
-        log_info(logger, f"Starting text extraction for {pdf_path.name}")
-
+        
         # First try standard text extraction
         with fitz.open(pdf_path) as doc:
             text = "".join(page.get_text() for page in doc)
             
         # If we got meaningful text, return it
         if text and len(text.strip()) > 50:
-            log_info(logger, f"Extracted text directly from {pdf_path.name}")
-            log_info(logger, f"Finished text extraction for {pdf_path.name} - {len(text)} chars")
+            log_info(logger, f"Extracted text directly from {pdf_path}")
             return text
             
         # If text extraction failed and Tesseract is available, try OCR
         if TESSERACT_AVAILABLE:
-            log_info(logger, f"Attempting OCR on {pdf_path.name}")
-            ocr_text = extract_text_with_ocr(pdf_path)
-            log_info(logger, f"Finished text extraction for {pdf_path.name} - {len(ocr_text)} chars")
-            return ocr_text
+            log_info(logger, f"Attempting OCR on {pdf_path}")
+            return extract_text_with_ocr(pdf_path)
         else:
-            log_warning(logger, f"No text found in {pdf_path.name} and OCR not available")
-            log_info(logger, f"Finished text extraction for {pdf_path.name} - {len(text)} chars")
+            log_warning(logger, f"No text found in {pdf_path} and OCR not available")
             return text
     except Exception as exc:
-        log_error(logger, f"Failed to extract text from {pdf_path.name}: {exc}")
+        log_error(logger, f"Failed to extract text from {pdf_path}: {exc}")
         return ""
 
 def extract_text_with_ocr(pdf_path: Path | str) -> str:
@@ -82,9 +80,8 @@ def extract_text_with_ocr(pdf_path: Path | str) -> str:
     if not TESSERACT_AVAILABLE:
         log_warning(logger, "Tesseract OCR not available")
         return ""
-
+        
     try:
-        log_info(logger, f"Starting OCR for {Path(pdf_path).name}")
         # Import here to avoid errors if not installed
         import pytesseract
         from PIL import Image

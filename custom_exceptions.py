@@ -1,4 +1,5 @@
 # KYO QA ServiceNow Custom Exceptions
+from version import VERSION
 
 class QAExtractionError(Exception):
     """Raised when QA data extraction fails"""
@@ -22,4 +23,9 @@ class ZipExtractionError(Exception):
 
 class ConfigurationError(Exception):
     """Raised when a configuration error occurs"""
+    pass
+
+# --- NEW UTILITY EXCEPTION ---
+class FileLockError(Exception):
+    """Raised when a file is locked and cannot be written to."""
     pass

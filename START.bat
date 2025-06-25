@@ -12,6 +12,7 @@ if %errorlevel% neq 0 (
     goto end_script
 )
 echo      [SUCCESS] Python is available.
+
 echo.
 
 echo [2/2] Checking for Tesseract OCR installation...
@@ -25,6 +26,8 @@ echo.
 
 echo --- Environment check passed. Starting Python setup... ---
 echo.
+
+:: This is the corrected line. We now call the advanced launcher.
 py.exe start_tool.py
 
 :end_script

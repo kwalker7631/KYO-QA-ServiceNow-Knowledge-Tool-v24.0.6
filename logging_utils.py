@@ -1,109 +1,78 @@
-# KYO QA ServiceNow Logging Utilities
+# KYO QA ServiceNow Logging Utilities - REPAIRED
 from version import VERSION
-
 import logging
 import sys
 from pathlib import Path
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
-# Create logs directory
-LOG_DIR = Path(__file__).parent / "logs"
+# Define Log Directory correctly relative to the project folder
+LOG_DIR = Path.cwd() / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
-def setup_logger(name: str, console_output=True, max_file_size=10*1024*1024) -> logging.Logger:
+# Define the log file name once when the module is imported
+SESSION_LOG_FILE = LOG_DIR / f"{datetime.now():%Y-%m-%d_%H-%M-%S}_session.log"
+
+def setup_logger(name: str, level=logging.INFO) -> logging.Logger:
     """
-    Return a logger that writes to both a dated log file and console if requested.
-    
-    Args:
-        name: Logger name
-        console_output: Whether to output to console
-        max_file_size: Maximum log file size in bytes before rotation (default 10MB)
-    
-    Returns:
-        Configured logger
+    Sets up a logger that writes to a single session log file and the console.
     """
-    logger = logging.getLogger(name)
-    
-    # Return existing logger if already configured
-    if logger.handlers:
-        return logger
-    
-    # Set level
-    logger.setLevel(logging.INFO)
-    
-    # Create formatter
     formatter = logging.Formatter(
-        "%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
+        "%(asctime)s [%(levelname)-8s] [%(name)-20s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
     
-    # File handler with rotation
-    log_file = LOG_DIR / f"{datetime.now():%Y%m%d}_{name}.log"
-    file_handler = RotatingFileHandler(
-        log_file,
-        maxBytes=max_file_size,
-        backupCount=5,
-        encoding="utf-8"
-    )
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    
-    # Console handler (optional)
-    if console_output:
+    # Get the root logger, which will be the parent of all other loggers
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+
+    # Add handlers only once to the root logger
+    if not root_logger.handlers:
+        # File handler (writes to the single session file)
+        file_handler = RotatingFileHandler(
+            SESSION_LOG_FILE,
+            maxBytes=10*1024*1024, # 10 MB
+            backupCount=5,
+            encoding="utf-8"
+        )
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+
+        # Console handler
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
-        logger.addHandler(console_handler)
-    
-    # Add version info to the log
-    logger.info(f"Logger initialized: {name} - {VERSION}")
-    
-    return logger
+        root_logger.addHandler(console_handler)
+
+        root_logger.info(f"Logging initialized for session. Log file: {SESSION_LOG_FILE}")
+
+    # Return a specific logger for the module, which is a child of the root
+    return logging.getLogger(name)
 
 def log_info(logger: logging.Logger, message: str) -> None:
-    """Log an info message."""
     logger.info(message)
 
 def log_error(logger: logging.Logger, message: str) -> None:
-    """Log an error message."""
     logger.error(message)
 
 def log_warning(logger: logging.Logger, message: str) -> None:
-    """Log a warning message."""
     logger.warning(message)
 
-def log_debug(logger: logging.Logger, message: str) -> None:
-    """Log a debug message."""
-    logger.debug(message)
-
-def log_critical(logger: logging.Logger, message: str) -> None:
-    """Log a critical message."""
-    logger.critical(message)
-
 def log_exception(logger: logging.Logger, message: str) -> None:
-    """Log an exception with traceback."""
     logger.exception(message)
 
 def create_success_log(message, output_file=None):
-    """Create a summary success log file."""
     if output_file is None:
         output_file = LOG_DIR / f"{datetime.now():%Y%m%d}_SUCCESSlog.md"
-    
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(f"# KYO QA Tool Success Log - {VERSION}\n\n")
         f.write(f"**Date:** {datetime.now():%Y-%m-%d %H:%M:%S}\n\n")
         f.write("## Summary\n\n")
         f.write(message + "\n\n")
-        f.write("---\n\n")
-        f.write("Process completed successfully.\n")
-    
     return str(output_file)
 
 def create_failure_log(message, error_details, output_file=None):
-    """Create a summary failure log file."""
     if output_file is None:
         output_file = LOG_DIR / f"{datetime.now():%Y%m%d}_FAILlog.md"
-    
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(f"# KYO QA Tool Failure Log - {VERSION}\n\n")
         f.write(f"**Date:** {datetime.now():%Y-%m-%d %H:%M:%S}\n\n")
@@ -111,9 +80,6 @@ def create_failure_log(message, error_details, output_file=None):
         f.write(message + "\n\n")
         f.write("## Technical Details\n\n")
         f.write("```\n")
-        f.write(error_details)
-        f.write("\n```\n\n")
-        f.write("---\n\n")
-        f.write("Please check the detailed logs for more information.\n")
-    
+        f.write(str(error_details))
+        f.write("\n```\n")
     return str(output_file)

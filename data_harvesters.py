@@ -1,157 +1,161 @@
-# KYO QA ServiceNow Data Harvesters
+# KYO QA ServiceNow AI Extractor - FINAL INTELLIGENT VERSION
+from version import VERSION
 import re
 from logging_utils import setup_logger, log_info, log_error, log_warning
-from config import (
-    DATE_PATTERNS,
-    SUBJECT_PATTERNS,
-    STANDARDIZATION_RULES,
-    APP_SOFTWARE_PATTERNS,
-)
+from config import STANDARDIZATION_RULES, QA_NUMBER_PATTERNS, SHORT_QA_PATTERN, MODEL_PATTERNS
+
+logger = setup_logger("ai_extractor")
+
+def clean_text_for_extraction(text):
+    """Removes repeating page headers/footers to reduce noise and improve accuracy."""
+    text = re.sub(r'\(Page\.\d+/\d+\)', '', text)
+    text = re.sub(r'Service\s+Bulletin\s+Ref\.', 'Ref.', text, flags=re.IGNORECASE)
+    text = re.sub(r'For\s+authorized\s+KYOCERA\s+engineers\s+only\.', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'Do\s+not\s+distribute\s+to\s+non-authorized\s+parties\.', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'CONFIDENTIAL', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'KYOCERA\s+Document\s+Solutions\s+Inc\.', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'A\s+B\s+C', '', text)
+    text = re.sub(r'[\t ]+', ' ', text)
+    return text
+
+def ai_extract(text, pdf_path):
+    """Intelligent extraction function that cleans text and uses multi-stage logic."""
+    from data_harvesters import harvest_metadata, harvest_subject, identify_document_type
+    
+    try:
+        filename = pdf_path.name
+        log_info(logger, f"Starting intelligent extraction for: {filename}")
+        
+        cleaned_text = clean_text_for_extraction(text)
+        # Pass both text and filename to the extractor
+        data = bulletproof_extraction(cleaned_text, filename)
+
+        supplemental_data = harvest_metadata(cleaned_text, pdf_path)
+        data['published_date'] = data.get('published_date') or supplemental_data.get('published_date', '')
+        data['author'] = data.get('author') or supplemental_data.get('author', STANDARDIZATION_RULES["default_author"])
+
+        data["subject"] = harvest_subject(cleaned_text)
+        data["document_type"] = identify_document_type(cleaned_text)
+
+        if data.get('models') and data['models'] != "Not Found":
+            data['Meta'] = ", ".join([m.strip() for m in data['models'].split(',')])
+
+        log_info(logger, f"Final Data for {filename}: QA='{data.get('full_qa_number')}', Short QA='{data.get('short_qa_number')}', Models='{data.get('models', '')[:70]}...'")
+        return data
+
+    except Exception as e:
+        log_error(logger, f"Critical error in ai_extract for {pdf_path.name}: {e}")
+        return create_error_data(pdf_path.name)
+
+def create_error_data(filename):
+    """Creates a standardized record for processing errors."""
+    return {
+        "full_qa_number": "", "short_qa_number": "", "models": "Extraction Error",
+        "subject": f"Error processing {filename}",
+        "author": STANDARDIZATION_RULES.get("default_author", "System"), "published_date": "",
+        "document_type": "Unknown", "needs_review": True, "Meta": ""
+    }
+
+def bulletproof_extraction(text, filename):
+    """Core extraction function using multi-stage logic for high accuracy."""
+    data = {"full_qa_number": None, "short_qa_number": None}
+
+    # --- FIXED: Stage 1 - QA NUMBER EXTRACTION from both text and filename ---
+    search_targets = [text, filename]
+    
+    for target in search_targets:
+        if data.get('full_qa_number'): break # Stop if we found it in the text
+        
+        for pattern in QA_NUMBER_PATTERNS:
+            match = re.search(pattern, target, re.IGNORECASE)
+            if match:
+                # Handle the new E-number pattern with two groups
+                if pattern == r"\b(E\d+)-([A-Z0-9]{2,}[-][0-9A-Z]+)\b":# KYO QA ServiceNow Data Harvesters - FINAL VERSION
+from version import VERSION
+import re
+from logging_utils import setup_logger, log_info, log_error, log_warning
+from config import DATE_PATTERNS, SUBJECT_PATTERNS, STANDARDIZATION_RULES, APP_SOFTWARE_PATTERNS
 
 logger = setup_logger("data_harvesters")
 
-def harvest_subject(text):
-    """Extract a subject or title for short_description."""
-    try:
-        if not text or len(text.strip()) < 10:
-            log_warning(logger, "Input text too short for subject extraction")
-            return "No subject found."
-
-        # Clean text
-        text = text.replace("\r", "\n").replace("\t", " ")
-        text = re.sub(r'\s+', ' ', text)
-
-        # Try subject patterns
-        for pattern in SUBJECT_PATTERNS:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match and len(match.group(1).strip()) > 10:
-                subject = match.group(1).strip()
-                max_length = STANDARDIZATION_RULES["max_subject_length"]
-                if len(subject) > max_length:
-                    subject = subject[:max_length-3] + "..."
-                log_info(logger, f"Subject harvested: {subject[:60]}...")
-                return subject
-
-        # Fallback: AI-based summarization
-        try:
-            import ollama
-            prompt = f"""
-            Summarize the following text into a concise subject or title (10-100 characters).
-            Avoid including model numbers or QA numbers.
-            Text: {text[:2000]}
-            """
-            response = ollama.chat(model="llama3", messages=[{"role": "user", "content": prompt}])
-            subject = response["message"]["content"].strip()
-            if len(subject) > 10:
-                max_length = STANDARDIZATION_RULES["max_subject_length"]
-                subject = subject[:max_length-3] + "..." if len(subject) > max_length else subject
-                log_info(logger, f"AI summarized subject: {subject[:60]}...")
-                return subject
-        except Exception as e:
-            log_warning(logger, f"AI subject extraction failed: {e}. Using fallback.")
-
-        # Fallback: First suitable paragraph
-        paragraphs = [p.strip() for p in re.split(r'\n{2,}|\s{3,}', text) if p.strip()]
-        for p in paragraphs:
-            if 10 <= len(p) <= 500:
-                max_length = STANDARDIZATION_RULES["max_subject_length"]
-                subject = p[:max_length-3] + "..." if len(p) > max_length else p
-                log_info(logger, f"Subject harvested (fallback): {subject[:60]}...")
-                return subject
-
-        log_warning(logger, "No suitable subject found.")
-        return "No subject found."
-    except Exception as e:
-        log_error(logger, f"Subject harvest error: {e}")
-        return "No subject found."
+def harvest_subject(text, qa_number=None):
+    """Extracts a clean subject, removing the QA number if present."""
+    subject = "No subject found"
+    for pattern in SUBJECT_PATTERNS:
+        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+        if match:
+            subject = match.group(1).strip()
+            subject = re.sub(r'\s+', ' ', subject)
+            if qa_number and qa_number in subject:
+                subject = subject.replace(qa_number, "").strip(" -")
+            max_len = STANDARDIZATION_RULES.get("max_subject_length", 250)
+            if len(subject) > max_len:
+                subject = subject[:max_len].rsplit(' ', 1)[0] + '...'
+            break
+    return subject
 
 def harvest_metadata(text, pdf_path=None):
-    """Extract comprehensive metadata from document text and PDF metadata."""
-    try:
-        from ocr_utils import get_pdf_metadata
-        pdf_metadata = get_pdf_metadata(pdf_path) if pdf_path else {}
-        results = {}
-
-        # Extract date (prefer publication-like dates)
-        for pattern in DATE_PATTERNS:
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            if matches:
-                results['dates'] = list(set(matches))[:1]  # Take first date
-                log_info(logger, f"Dates found: {results['dates']}")
+    """Extracts supplemental metadata like dates and authors."""
+    from ocr_utils import get_pdf_metadata
+    pdf_metadata = get_pdf_metadata(pdf_path) if pdf_path else {}
+    results = {"published_date": "", "author": STANDARDIZATION_RULES["default_author"]}
+    for pattern in DATE_PATTERNS:
+        pub_regex = rf"(?:published|issue(?:d)?|publication|revision\s*date)[^\n:]*[:\s]*({pattern})"
+        pub_match = re.search(pub_regex, text, re.IGNORECASE)
+        if pub_match:
+            results['published_date'] = pub_match.group(1)
+            break
+    if not results.get('published_date'):
+         for key in ("modDate", "creationDate"):
+            if pdf_metadata.get(key):
+                results['published_date'] = pdf_metadata[key]
                 break
-        if not results.get('dates') and pdf_metadata.get("creationDate"):
-            results['dates'] = [pdf_metadata["creationDate"]]
-            log_info(logger, f"Date from PDF metadata: {results['dates']}")
-
-        # Extract published date
-        for pattern in DATE_PATTERNS:
-            pub_regex = rf"(?:published|issue(?:d)?|publication|revision\s*date)[^\n:]*[:\s]*({pattern})"
-            pub_match = re.search(pub_regex, text, re.IGNORECASE)
-            if pub_match:
-                results['published_date'] = pub_match.group(1)
-                log_info(logger, f"Published date found: {results['published_date']}")
-                break
-        if not results.get('published_date'):
-            for key in ("modDate", "creationDate"):
-                if pdf_metadata.get(key):
-                    results['published_date'] = pdf_metadata[key]
-                    log_info(logger, f"Published date from PDF metadata: {results['published_date']}")
-                    break
-
-        # Extract firmware version
-        firmware_match = re.search(r'firmware\s+(?:version|upgrade)?[\s:]*([0-9.]+(?:\s*\w*)?)', text, re.IGNORECASE)
-        if firmware_match:
-            results['firmware'] = firmware_match.group(1).strip()
-            log_info(logger, f"Firmware version found: {results['firmware']}")
-
-        # Extract serial numbers (limit to 5)
-        serial_matches = re.findall(r'\b[A-Z]{3}[0-9]{5,8}\b', text)
-        if serial_matches:
-            results['serial_numbers'] = list(set(serial_matches))[:5]
-            log_info(logger, f"Serial numbers found: {', '.join(results['serial_numbers'])}")
-
-        # Extract part numbers (limit to 5)
-        part_matches = re.findall(r'\b[0-9]{2,3}[A-Z]{1,2}[0-9]{3,6}\b', text)
-        if part_matches:
-            results['part_numbers'] = list(set(part_matches))[:5]
-            log_info(logger, f"Part numbers found: {', '.join(results['part_numbers'])}")
-
-        # Extract author
-        author_match = re.search(r'\b(?:author|created\s+by):?\s*([A-Za-z\s]+)(?:\n|$)', text, re.IGNORECASE)
-        results['author'] = author_match.group(1).strip() if author_match else STANDARDIZATION_RULES["default_author"]
-        if pdf_metadata.get("author"):
-            results['author'] = pdf_metadata["author"]
-        log_info(logger, f"Author: {results['author']}")
-
-        return results
-    except Exception as e:
-        log_error(logger, f"Metadata harvest error: {e}")
-        return {
-            "dates": [STANDARDIZATION_RULES["default_date"]],
-            "firmware": "", "serial_numbers": [], "part_numbers": [],
-            "author": STANDARDIZATION_RULES["default_author"],
-            "published_date": ""
-        }
+    author_match = re.search(r'\b(?:author|created\s+by):?\s*([A-Za-z\s]+)(?:\n|$)', text, re.IGNORECASE)
+    if author_match:
+         results['author'] = author_match.group(1).strip()
+    elif pdf_metadata.get("author"):
+        results['author'] = pdf_metadata["author"]
+    return results
 
 def identify_document_type(text):
-    """Identify the type of document based on content."""
-    try:
-        text_lower = text.lower()
-        if re.search(r'\bservice\s+bulletin\b', text_lower):
-            return "Service Bulletin"
-        elif re.search(r'\b(?:qa|quality\s+assurance)\b', text_lower):
-            return "Quality Assurance"
-        elif re.search(r'\btechnical\s+(?:bulletin|note)\b', text_lower):
-            return "Technical Bulletin"
-        elif re.search(r'\binstallation\s+(?:guide|manual|instruction)\b', text_lower):
-            return "Installation Guide"
-        elif re.search(r'\buser\s+(?:guide|manual)\b', text_lower):
-            return "User Manual"
-        elif re.search(r'\btroubleshooting\b', text_lower):
-            return "Troubleshooting Guide"
-        elif re.search(APP_SOFTWARE_PATTERNS["keywords"], text_lower, re.IGNORECASE):
-            return "Software Bulletin"
-        return "Unknown"
-    except Exception as e:
-        log_error(logger, f"Document type identification error: {e}")
-        return "Unknown"
+    """Identifies the document type from its content."""
+    text_lower = text.lower()
+    if re.search(r'\bservice\s+bulletin\b', text_lower): return "Service Bulletin"
+    if re.search(r'\b(?:qa|quality\s+assurance)\b', text_lower): return "Quality Assurance"
+    if re.search(r'\btechnical\s+(?:bulletin|note)\b', text_lower): return "Technical Bulletin"
+    if re.search(APP_SOFTWARE_PATTERNS["keywords"], text_lower, re.IGNORECASE): return "Software Bulletin"
+    return "Unknown"
+                    data['short_qa_number'] = match.group(1).strip()
+                    data['full_qa_number'] = match.group(2).strip()
+                    log_info(logger, f"QA Number extracted from '{target[:30]}...' using E-number pattern.")
+                    break
+                # Handle patterns with the (Pxxx) short code
+                elif len(match.groups()) > 1 and match.group(2):
+                    data['full_qa_number'] = match.group(1).strip()
+                    data['short_qa_number'] = match.group(2).strip()
+                    log_info(logger, f"QA Number extracted from '{target[:30]}...' using P-number pattern.")
+                    break
+                # Handle patterns with only a full QA number
+                else:
+                    data['full_qa_number'] = match.group(1).strip()
+                    # Try to find a short code separately
+                    short_match = re.search(SHORT_QA_PATTERN, target, re.IGNORECASE)
+                    if short_match:
+                        data['short_qa_number'] = short_match.group(1)
+                    log_info(logger, f"QA Number extracted from '{target[:30]}...' using general pattern.")
+                    break
+        if data.get('full_qa_number'): break
+
+    # Stage 2: MODEL EXTRACTION
+    for pattern in MODEL_PATTERNS:
+        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+        if match:
+            models_text = re.sub(r'\s+', ' ', match.group(1)).strip(' ,-')
+            data['models'] = models_text
+            log_info(logger, f"Extracted models: {models_text[:100]}...")
+            break
+
+    if not data.get('models'):
+        data['models'] = "Not Found"
+        
+    return data

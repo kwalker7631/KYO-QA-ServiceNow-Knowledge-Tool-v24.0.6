@@ -1,4 +1,4 @@
-# KYO QA ServiceNow Knowledge Tool v24.0.6
+# KYO QA ServiceNow Knowledge Tool v24.0.1
 
 ## How to Set Up and Run (Modular, Fully Logged)
 
@@ -6,18 +6,15 @@
 - **Python 3.11.x (64-bit):** [Download Python 3.11.9 Windows Installer](https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe)
 - **Tesseract OCR:** [Tesseract Windows Installer (UB Mannheim)](https://github.com/UB-Mannheim/tesseract/wiki)
 - **Optional:** All dependencies listed in `requirements.txt` (auto-installed if you run `start_tool.py`)
-- **Extract module:** Ensure the `/extract/` folder is present. If your copy
-  doesn't include it, install the private `kyo-qa-extract` package or copy the
-  folder from another release.
 
 ### 2. Folder Structure
-KYO_QA_ServiceNow_Knowledge_Tool_v24.0.6/
+KYO_QA_ServiceNow_Knowledge_Tool_v24.0.1/
 ├── run_tool.bat
 ├── start_tool.py
 ├── requirements.txt
 ├── README.md
 ├── CHANGELOG.md
-├── gui/main.py
+├── kyo_qa_tool_app.py
 ├── logging_utils.py
 ├── ocr_utils.py
 ├── ai_extractor.py
@@ -29,7 +26,7 @@ KYO_QA_ServiceNow_Knowledge_Tool_v24.0.6/
 ├── logs/(auto-created)
 ├── output/(auto-created)
 └── venv/(auto-created)
-# KYO QA ServiceNow Knowledge Tool v24.0.6 – Directory Breakdown
+# KYO QA ServiceNow Knowledge Tool v24.0.1 – Directory Breakdown
 
 This tool extracts model info, QA/SB numbers, and descriptions from Kyocera QA/service PDFs using OCR + pattern recognition. It outputs a ServiceNow-ready Excel file and logs every step. No PDFs are retained.
 
@@ -51,7 +48,7 @@ This tool extracts model info, QA/SB numbers, and descriptions from Kyocera QA/s
 
 | File                  | Role                                               |
 |------------------------|----------------------------------------------------|
-| `gui/main.py`   | Main controller and orchestrator                  |
+| `kyo_qa_tool_app.py`   | Main controller and orchestrator                  |
 | `processing_engine.py` | Coordinates the multi-step processing pipeline    |
 | `ocr_utils.py`         | Converts PDF scans to text using OCR              |
 | `ai_extractor.py`      | Extracts structured data using regex/NLP          |
@@ -98,15 +95,16 @@ This tool extracts model info, QA/SB numbers, and descriptions from Kyocera QA/s
     - Logs and output are saved in `/logs/` and `/output/` folders.
 
 ### Install Dependencies
-If you plan to run or test the tool locally, install the Python packages listed in
-`requirements.txt`:
+If you plan to run or test the tool locally, first install the required Python
+packages with the helper script:
 
 ```bash
-cd KYO_QA_ServiceNow_Knowledge_Tool_v24.0.6
-python -m pip install -r requirements.txt
+cd KYO_QA_ServiceNow_Knowledge_Tool_v24.0.1
+./scripts/setup_env.sh
 ```
 
-The test suite relies on these packages, so install them before executing `pytest`.
+The test suite relies on these packages, so make sure to run the script before
+executing `pytest`.
 
 ### Development and Testing
 After installing the dependencies, run the test suite with:
@@ -117,11 +115,11 @@ pytest -q
 
 The tests rely on `pandas`, `PyMuPDF`, and the rest of the packages listed in
 `requirements.txt`. If `PyMuPDF` is missing you will see import errors. As of
-v24.0.6, unused packages `xlsxwriter` and `halo` were removed to keep the
+v24.0.1, unused packages `xlsxwriter` and `halo` were removed to keep the
 environment lean.
 
 ### 4. Versioning
-- This is the modular, logging-enabled release: **v24.0.6**
+- This is the modular, logging-enabled release: **v24.0.1**
 - Each file and log is stamped with its version.
 - All updates are tracked in `CHANGELOG.md`.
 

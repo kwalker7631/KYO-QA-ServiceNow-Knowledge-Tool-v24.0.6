@@ -1,4 +1,5 @@
 # KYO QA ServiceNow File Utilities
+from version import VERSION
 
 import os
 import shutil
@@ -178,3 +179,23 @@ def open_file(file_path):
     except Exception as e:
         log_error(logger, f"Failed to open {file_path}: {e}")
         return False
+# ... (all other functions remain the same) ...
+
+# --- NEW UTILITY FUNCTION ---
+def is_file_locked(filepath: Path) -> bool:
+    """
+    Checks if a file is locked by another process by trying to open it for appending.
+    """
+    if not filepath.exists():
+        return False # File doesn't exist, so it can't be locked
+    
+    try:
+        # Try to open the file in append mode. If it's locked, this will fail.
+        with open(filepath, 'a') as f:
+            pass # We don't need to do anything, just successfully open and close it.
+    except (IOError, PermissionError):
+        # This exception means the file is locked by another process (like Excel).
+        log_warning(logger, f"File lock check failed. File is likely open: {filepath}")
+        return True
+    
+    return False
