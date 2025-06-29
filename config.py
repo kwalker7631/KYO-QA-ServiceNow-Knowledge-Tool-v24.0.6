@@ -32,7 +32,7 @@ MODEL_PATTERNS = [
     # Pattern for major model lines like TASKalfa and ECOSYS
     r'\bTASKalfa\s*[a-zA-Z0-9-]+\b',
     r'\bECOSYS\s*[a-zA-Z0-9-]+\b',
-    
+
     # Whitelist pattern for known accessory prefixes
     r'\b(PF|DF|MK|AK|DP|BF|JS)-\d+[\w-]*\b',
 ]
@@ -77,3 +77,4 @@ STANDARDIZATION_RULES = {
 
 # --- EXCEL GENERATION ---
 META_COLUMN_NAME = "Meta"
+
