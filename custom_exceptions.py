@@ -1,5 +1,5 @@
 # KYO QA ServiceNow Custom Exceptions
-from version import VERSION
+
 
 class QAExtractionError(Exception):
     """Raised when QA data extraction fails"""
