@@ -1,5 +1,3 @@
-# Central version file for KYO QA ServiceNow Knowledge Tool
+# version.py
+# This is the single source of truth for the application's version number.
 VERSION = "24.0.6"
-
-def get_version():
-    return VERSION
