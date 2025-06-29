@@ -127,6 +127,15 @@ pytest -q
 
 Requires `pandas`, `PyMuPDF`, `openpyxl`, `pytesseract`, `python-dateutil`, `colorama`. Ensure Tesseract is installed or in `tesseract` folder for OCR tests.
 
+### Installing Test Dependencies
+
+Run the following to set up packages for testing:
+```bash
+pip install -r requirements.txt
+pip install pytest flake8
+```
+You can also run `install_test_deps.bat` on Windows.
+
 ### 6. Versioning
 
 - Current version: **v24.0.6**
