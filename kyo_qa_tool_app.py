@@ -323,7 +323,9 @@ class KyoQAToolApp(tk.Tk):
     def rerun_last_job(self):
         if self.last_run_info:
             self.log_message("Re-running the last process with updated patterns...", "info")
-            self.start_processing(job_request=self.last_run_info)
+            job = dict(self.last_run_info)
+            job["is_rerun"] = True
+            self.start_processing(job_request=job)
         else:
             messagebox.showwarning("No Previous Job", "Please run a process first before using the re-run feature.")
     

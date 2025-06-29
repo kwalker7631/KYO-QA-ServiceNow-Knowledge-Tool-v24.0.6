@@ -42,6 +42,8 @@ QA_NUMBER_PATTERNS = [
     r'\bSB[-_]?[\w-]+',
     r'\bE\d{4}-[A-Z0-9-]+',
 ]
+# REQUIRES USER CONSENT: Suggested regex improvement below
+# QA_NUMBER_PATTERNS could include digits-only codes like r'\bQA\d{5,}\b'
 
 SHORT_QA_PATTERN = r'(E\d{4,}|\d{5,})'
 
