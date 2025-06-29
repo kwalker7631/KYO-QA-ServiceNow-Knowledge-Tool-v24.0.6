@@ -16,6 +16,7 @@ from custom_exceptions import FileLockError
 from data_harvesters import harvest_all_data
 from file_utils import (cleanup_temp_files, get_temp_dir, is_file_locked)
 from ocr_utils import extract_text_from_pdf, _is_ocr_needed
+from recycle_utils import apply_recycles
 
 #==============================================================
 # --- THIS SECTION WAS MISSING - IT IS NOW RESTORED ---
@@ -43,6 +44,15 @@ def clear_review_folder():
                 f.unlink()
             except OSError as e:
                 print(f"Error deleting review file {f}: {e}")
+
+def clear_cache_folder():
+    """Deletes cached JSON results to force reprocessing."""
+    if CACHE_DIR.exists():
+        for f in CACHE_DIR.glob("*.json"):
+            try:
+                f.unlink()
+            except OSError as e:
+                print(f"Error deleting cache file {f}: {e}")
 
 def process_single_pdf(pdf_path: Path, progress_queue: Queue, ignore_cache: bool = False) -> dict:
     """Processes a single PDF, now with caching capabilities."""
@@ -76,6 +86,8 @@ def process_single_pdf(pdf_path: Path, progress_queue: Queue, ignore_cache: bool
         progress_queue.put({"type": "increment_counter", "counter": "ocr"})
     
     extracted_text = extract_text_from_pdf(pdf_path)
+    # v2.5.1 - apply recycle rules before harvesting
+    extracted_text = apply_recycles(extracted_text)
     if not extracted_text or not extracted_text.strip():
         final_status = "Fail"
         result = {"filename": filename, "models": "Error: Text Extraction Failed", "author": "", "status": final_status, "ocr_used": ocr_required}
@@ -119,6 +131,8 @@ def run_processing_job(job_info: dict, progress_queue: Queue, cancel_event):
         if is_rerun:
             cloned_excel_path = Path(excel_path_str)
             progress_queue.put({"type": "log", "tag": "info", "msg": f"Re-running process on: {cloned_excel_path.name}"})
+            clear_review_folder()
+            clear_cache_folder()
         else:
             progress_queue.put({"type": "status", "msg": "Cleaning review folder...", "led": "Setup"})
             clear_review_folder()
@@ -131,7 +145,10 @@ def run_processing_job(job_info: dict, progress_queue: Queue, cancel_event):
             shutil.copy(base_excel_path, cloned_excel_path)
             progress_queue.put({"type": "log", "tag": "success", "msg": f"Cloned file saved to: {cloned_excel_path}"})
 
-        files_to_process = [Path(f) for f in input_path] if isinstance(input_path, list) else [f for f in Path(input_path).iterdir() if f.suffix.lower() in ['.pdf', '.zip']]
+        files_to_process = [Path(f) for f in input_path] if isinstance(input_path, list) else [
+            f for f in Path(input_path).iterdir()
+            if f.suffix.lower() in ['.pdf', '.zip'] and PDF_TXT_DIR not in f.parents
+        ]
         
         results_map = {}
         for i, file_path in enumerate(files_to_process):
