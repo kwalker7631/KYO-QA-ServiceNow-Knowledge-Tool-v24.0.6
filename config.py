@@ -40,9 +40,10 @@ MODEL_PATTERNS = [
 QA_NUMBER_PATTERNS = [
     r'\bQA[-_]?[\w-]+',
     r'\bSB[-_]?[\w-]+',
+    r'\bE\d{4}-[A-Z0-9-]+',
 ]
 
-SHORT_QA_PATTERN = r'(\d{5,})'
+SHORT_QA_PATTERN = r'(E\d{4,}|\d{5,})'
 
 DATE_PATTERNS = [
     r'(?i)(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},\s+\d{4}',
@@ -76,3 +77,4 @@ STANDARDIZATION_RULES = {
 
 # --- EXCEL GENERATION ---
 META_COLUMN_NAME = "Meta"
+

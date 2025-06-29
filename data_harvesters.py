@@ -122,3 +122,12 @@ def harvest_all_data(text: str, filename: str) -> dict:
         "author": author,
         "short_description": short_description
     }
+
+
+def bulletproof_extraction(text: str, filename: str) -> dict:
+    """Backward-compatible wrapper for comprehensive extraction.
+
+    This helper simply calls :func:`harvest_all_data` so older modules and
+    tests continue to work without modification.
+    """
+    return harvest_all_data(text, Path(filename).name)
