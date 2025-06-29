@@ -1,9 +1,13 @@
-import sys
+# flake8: noqa
 import os
+import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from excel_generator import sanitize_for_excel, MAX_EXCEL_CELL_LENGTH
+from excel_generator import (
+    sanitize_for_excel,
+    MAX_EXCEL_CELL_LENGTH,
+)  # noqa: E402
 
 
 def test_sanitize_truncates_long_strings():
