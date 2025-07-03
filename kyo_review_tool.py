@@ -1,22 +1,37 @@
 # kyo_review_tool.py
+# Version: 25.1.0
+# Last modified: 2025-07-02
+# Pattern management tool for customizing extraction patterns
+
 import tkinter as tk
-from tkinter import messagebox, ttk, simpledialog
+from tkinter import messagebox, ttk
 from pathlib import Path
 import re
-import itertools
+import importlib
 
 from config import BRAND_COLORS
-import config as config_module
 
 def generate_regex_from_sample(sample: str) -> str:
-    """Analyzes a sample string and generates a precise regex pattern."""
-    if not sample or not sample.strip(): return ""
+    """
+    Analyzes a sample string and generates a precise regex pattern by keeping
+    all letters and symbols literal and only generalizing the numbers.
+    """
+    if not sample or not sample.strip():
+        return ""
+
+    # Step 1: Escape any special regex characters in the user's sample text.
     escaped_sample = re.escape(sample.strip())
+
+    # Step 2: In the escaped string, find all digit sequences and replace them
+    # with the regex token for one or more digits, `\d+`.
     pattern_with_digit_wildcard = re.sub(r'\d+', r'\\d+', escaped_sample)
+    
+    # Step 3: Construct the final pattern with word boundaries
     return f"\\b{pattern_with_digit_wildcard}\\b"
 
+
 class ReviewWindow(tk.Toplevel):
-    """An upgraded pattern management tool with a more streamlined workflow."""
+    """A generic regex pattern management tool that safely edits a separate custom_patterns.py file."""
     def __init__(self, parent, pattern_name: str, pattern_label: str, file_info: dict = None):
         super().__init__(parent)
         
@@ -25,7 +40,7 @@ class ReviewWindow(tk.Toplevel):
         self.file_info = file_info
         self.custom_patterns_path = Path("custom_patterns.py")
         
-        self.title(f"Manage: {self.pattern_label}")
+        self.title(f"Manage Custom: {self.pattern_label}")
         self.geometry("1000x700")
         self.configure(bg=BRAND_COLORS["background"])
 
@@ -39,8 +54,9 @@ class ReviewWindow(tk.Toplevel):
 
         text_frame = ttk.Frame(paned_window, padding=10)
         paned_window.add(text_frame)
-
+        
         ttk.Label(manager_frame, text=self.pattern_label, font=("Segoe UI", 12, "bold")).grid(row=0, column=0, columnspan=2, sticky="w")
+        
         self.pattern_listbox = tk.Listbox(manager_frame, font=("Consolas", 9), height=15)
         self.pattern_listbox.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=5)
         self.pattern_listbox.bind("<<ListboxSelect>>", self.on_pattern_select)
@@ -48,9 +64,6 @@ class ReviewWindow(tk.Toplevel):
         pattern_scrollbar.grid(row=1, column=2, sticky="ns", pady=5)
         self.pattern_listbox.config(yscrollcommand=pattern_scrollbar.set)
         
-        #==============================================================
-        # --- MODIFICATION: Simplified button layout ---
-        #==============================================================
         btn_frame = ttk.Frame(manager_frame)
         btn_frame.grid(row=2, column=0, columnspan=2, pady=5)
         ttk.Button(btn_frame, text="Add as New", command=self.add_pattern).pack(side="left", padx=5)
@@ -63,16 +76,14 @@ class ReviewWindow(tk.Toplevel):
         
         test_save_frame = ttk.Frame(manager_frame)
         test_save_frame.grid(row=5, column=0, columnspan=2, pady=10)
-        ttk.Button(test_save_frame, text="Suggest from Highlight", command=self.on_suggest_pattern).pack(side="left", padx=5)
-        ttk.Button(test_save_frame, text="Test Pattern", command=self.test_pattern).pack(side="left", padx=5)
         
-        # --- NEW: This button updates the list from the entry box ---
+        self.suggest_btn = ttk.Button(test_save_frame, text="Suggest from Highlight", command=self.on_suggest_pattern)
+        self.suggest_btn.pack(side="left", padx=5)
+        self.test_btn = ttk.Button(test_save_frame, text="Test Pattern", command=self.test_pattern)
+        self.test_btn.pack(side="left", padx=5)
         ttk.Button(test_save_frame, text="Update List", command=self.update_pattern_in_list).pack(side="left", padx=5)
         
-        ttk.Button(manager_frame, text="Save All Patterns to Config", style="Red.TButton", command=self.save_patterns_to_config).grid(row=6, column=0, columnspan=2, pady=10, sticky="ew")
-        #==============================================================
-        # --- END OF MODIFICATION ---
-        #==============================================================
+        ttk.Button(manager_frame, text="Save All Patterns", style="Red.TButton", command=self.save_patterns_to_config).grid(row=6, column=0, columnspan=2, pady=10, sticky="ew")
 
         self.pdf_text = tk.Text(text_frame, wrap="word", font=("Consolas", 9), relief="solid", borderwidth=1)
         self.pdf_text.pack(fill="both", expand=True, side="left")
@@ -81,13 +92,80 @@ class ReviewWindow(tk.Toplevel):
         self.pdf_text.config(yscrollcommand=text_scrollbar.set)
         self.pdf_text.tag_configure("highlight", background="yellow", foreground="black")
 
-        if self.file_info: self.load_text_file()
+        if self.file_info:
+            self.load_text_file()
         else:
             self.suggest_btn.config(state=tk.DISABLED)
             self.test_btn.config(state=tk.DISABLED)
-            self.pdf_text.insert("1.0", "No file selected.\nManage patterns on the left without testing.")
+            self.pdf_text.insert("1.0", "No file selected.\n\nManage patterns on the left without testing.")
             self.pdf_text.config(state=tk.DISABLED)
+            
         self.load_patterns_from_config()
+
+    def load_patterns_from_config(self):
+        """Dynamically loads the specified pattern list from the custom_patterns.py file."""
+        self.pattern_listbox.delete(0, tk.END)
+        patterns_to_load = []
+        try:
+            import custom_patterns as custom_module
+            importlib.reload(custom_module)
+            patterns_to_load = getattr(custom_module, self.pattern_name, [])
+        except (ImportError, SyntaxError):
+            pass 
+        for pattern in patterns_to_load:
+            self.pattern_listbox.insert(tk.END, pattern)
+    
+    def save_patterns_to_config(self):
+        """Re-writes all pattern lists into the custom_patterns.py file correctly."""
+        all_patterns_in_listbox = self.pattern_listbox.get(0, tk.END)
+        msg = f"This will save {len(all_patterns_in_listbox)} patterns to the {self.pattern_name} list in custom_patterns.py.\n\nAre you sure?"
+        if not messagebox.askyesno("Confirm Save", msg, parent=self):
+            return
+
+        try:
+            all_lists_to_save = {self.pattern_name: list(all_patterns_in_listbox)}
+            all_possible_pattern_names = ["MODEL_PATTERNS", "QA_NUMBER_PATTERNS"]
+            
+            try:
+                import custom_patterns as custom_module
+                importlib.reload(custom_module)
+                for name in all_possible_pattern_names:
+                    if name != self.pattern_name:
+                        if name not in all_lists_to_save:
+                            all_lists_to_save[name] = getattr(custom_module, name, [])
+            except (ImportError, SyntaxError):
+                pass
+
+            file_content = "# custom_patterns.py\n# Version: 25.1.0\n# Last modified: " + \
+                           f"{Path(__file__).stat().st_mtime:%Y-%m-%d}\n" + \
+                           "# This file stores user-defined regex patterns.\n"
+            
+            for name, patterns in all_lists_to_save.items():
+                file_content += f"\n{name} = [\n"
+                for pattern in patterns:
+                    safe_pattern = pattern.replace("'", "\\'")
+                    file_content += f"    r'{safe_pattern}',\n"
+                file_content += "]\n"
+            
+            self.custom_patterns_path.write_text(file_content, encoding='utf-8')
+            messagebox.showinfo("Success", "Custom patterns saved successfully!\nChanges will apply on the next run.", parent=self)
+            self.destroy()
+        except Exception as e:
+            messagebox.showerror("Save Failed", f"Could not save patterns to file:\n{e}", parent=self)
+
+    def update_pattern_in_list(self):
+        new_pattern = self.pattern_entry.get().strip()
+        if not new_pattern:
+            messagebox.showwarning("Input Error", "Test/Edit Pattern box is empty.", parent=self)
+            return
+            
+        selection_indices = self.pattern_listbox.curselection()
+        if not selection_indices:
+            self.pattern_listbox.insert(tk.END, new_pattern)
+        else:
+            idx = selection_indices[0]
+            self.pattern_listbox.delete(idx)
+            self.pattern_listbox.insert(idx, new_pattern)
 
     def on_pattern_select(self, event):
         selection_indices = self.pattern_listbox.curselection()
@@ -101,7 +179,6 @@ class ReviewWindow(tk.Toplevel):
         self.remove_btn.config(state=tk.NORMAL)
 
     def add_pattern(self):
-        """Adds the pattern from the entry box to the list."""
         new_pattern = self.pattern_entry.get().strip()
         if new_pattern:
             self.pattern_listbox.insert(tk.END, new_pattern)
@@ -111,87 +188,11 @@ class ReviewWindow(tk.Toplevel):
 
     def remove_pattern(self):
         selection_indices = self.pattern_listbox.curselection()
-        if not selection_indices: return
+        if not selection_indices:
+            return
         if messagebox.askyesno("Confirm Delete", "Are you sure you want to remove the selected pattern?"):
             self.pattern_listbox.delete(selection_indices[0])
-            self.on_pattern_select(None) # Update UI state
-
-    #==============================================================
-    # --- NEW FEATURE: Streamlined pattern update logic ---
-    #==============================================================
-    def update_pattern_in_list(self):
-        """Updates the selected item in the listbox with the content from the entry box."""
-        new_pattern = self.pattern_entry.get().strip()
-        if not new_pattern:
-            messagebox.showwarning("Input Error", "Test/Edit Pattern box is empty.", parent=self)
-            return
-            
-        selection_indices = self.pattern_listbox.curselection()
-        if not selection_indices:
-            # If nothing is selected, treat it as an "Add New"
-            self.pattern_listbox.insert(tk.END, new_pattern)
-        else:
-            # If something is selected, update it
-            idx = selection_indices[0]
-            self.pattern_listbox.delete(idx)
-            self.pattern_listbox.insert(idx, new_pattern)
-    #==============================================================
-    # --- END OF NEW FEATURE ---
-    #==============================================================
-
-    # ... (All other methods: save, test, suggest, load_text, load_patterns remain the same)
-    def load_text_file(self):
-        try:
-            if self.file_info and "txt_path" in self.file_info:
-                txt_path = self.file_info["txt_path"]
-                with open(txt_path, 'r', encoding='utf-8') as f: content = f.read()
-                self.pdf_text.insert("1.0", content)
-            else:
-                raise ValueError("No file information was provided to load.")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load text file:\n{e}", parent=self)
-            self.pdf_text.insert("1.0", "Error: Could not load text file for review.")
-            self.pdf_text.config(state=tk.DISABLED)
-
-    def load_patterns_from_config(self):
-        self.pattern_listbox.delete(0, tk.END)
-        patterns_to_load = []
-        try:
-            import custom_patterns as custom_module
-            patterns_to_load = getattr(custom_module, self.pattern_name, [])
-        except ImportError:
-            pass
-        for pattern in patterns_to_load:
-            self.pattern_listbox.insert(tk.END, pattern)
-    
-    def save_patterns_to_config(self):
-        all_patterns = self.pattern_listbox.get(0, tk.END)
-        msg = f"This will save {len(all_patterns)} patterns to the custom_patterns.py file.\n\nAre you sure?"
-        if not messagebox.askyesno("Confirm Save", msg, parent=self): return
-        new_list_str = f"{self.pattern_name} = [\n"
-        for pattern in all_patterns:
-            escaped_pattern = pattern.replace('\\', '\\\\')
-            new_list_str += f"    r'{escaped_pattern}',\n"
-        new_list_str += "]\n"
-        other_lists = {}
-        all_pattern_names = ["MODEL_PATTERNS", "QA_NUMBER_PATTERNS"]
-        try:
-            import custom_patterns as custom_module
-            for name in all_pattern_names:
-                if name != self.pattern_name:
-                    other_lists[name] = getattr(custom_module, name, [])
-        except ImportError: pass
-        file_content = "# custom_patterns.py\n# This file stores user-defined regex patterns.\n\n"
-        file_content += new_list_str
-        for name, patterns in other_lists.items():
-            file_content += f"\n{name} = [\n"
-            for pattern in patterns:
-                escaped_pattern = pattern.replace('\\', '\\\\')
-                file_content += f"    r'{escaped_pattern}',\n"
-            file_content += "]\n"
-        self.custom_patterns_path.write_text(file_content, encoding='utf-8')
-        messagebox.showinfo("Success", "Custom patterns saved successfully!\nChanges will apply on the next run.", parent=self)
-        self.destroy()
+            self.on_pattern_select(None)
 
     def test_pattern(self):
         self.pdf_text.tag_remove("highlight", "1.0", "end")
@@ -225,7 +226,17 @@ class ReviewWindow(tk.Toplevel):
             messagebox.showinfo("Pattern Suggested", "A pattern has been generated in the 'Test / Edit' box.", parent=self)
         except tk.TclError:
             messagebox.showwarning("No Selection", "Please highlight text to generate a pattern.", parent=self)
-
-#==============================================================
-# --- END OF FILE ---
-#==============================================================
+            
+    def load_text_file(self):
+        try:
+            if self.file_info and "txt_path" in self.file_info:
+                txt_path = self.file_info["txt_path"]
+                with open(txt_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                self.pdf_text.insert("1.0", content)
+            else:
+                raise ValueError("No file information was provided to load.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load text file:\n{e}", parent=self)
+            self.pdf_text.insert("1.0", "Error: Could not load text file for review.")
+            self.pdf_text.config(state=tk.DISABLED)

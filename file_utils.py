@@ -1,200 +1,100 @@
-# KYO QA ServiceNow File Utilities
-
+# file_utils.py
 import os
 import shutil
-import time
+import tempfile
 from pathlib import Path
-from logging_utils import setup_logger, log_info, log_error, log_warning
-from datetime import datetime
+import subprocess
+import platform
 
-logger = setup_logger("file_utils")
-
-# Ensure all needed subfolders exist
-REQUIRED_FOLDERS = [
-    "logs",
-    "output",
-    "PDF_TXT",
-    "temp"
-    # add more as needed
-]
-
-def ensure_folders(base_folder=None):
-    base = Path(base_folder) if base_folder else Path(__file__).parent
-    for folder in REQUIRED_FOLDERS:
-        fpath = base / folder
-        try:
-            fpath.mkdir(parents=True, exist_ok=True)
-            log_info(logger, f"Ensured folder exists: {fpath}")
-        except Exception as e:
-            log_error(logger, f"Failed to create folder {fpath}: {e}")
-    return base
-
+# Create a temporary directory for storing intermediate files
 def get_temp_dir():
-    """Get the path to the temp directory."""
-    temp_dir = Path(__file__).parent / "temp"
-    temp_dir.mkdir(parents=True, exist_ok=True)
+    """Returns a Path object to a temporary directory that will be used for this session."""
+    temp_dir = Path(tempfile.gettempdir()) / "kyo_qa_tool_temp"
+    temp_dir.mkdir(exist_ok=True)
     return temp_dir
 
-def is_pdf(filename):
-    """Check if a file is a PDF based on extension."""
-    return str(filename).lower().endswith(".pdf")
-
-def is_zip(filename):
-    """Check if a file is a ZIP based on extension."""
-    return str(filename).lower().endswith(".zip")
-
-def is_excel(filename):
-    """Check if a file is an Excel file (.xlsx or .xlsm)."""
-    return str(filename).lower().endswith((".xlsx", ".xlsm"))
-
-def save_txt(text, output_path):
-    """Save text to a file with proper encoding."""
-    try:
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(text)
-        log_info(logger, f"Saved TXT: {output_path}")
-        return True
-    except Exception as e:
-        log_error(logger, f"Failed to save TXT: {output_path} - {e}")
-        return False
-
-def cleanup_temp_files(directory=None):
-    """Clean up temporary files."""
-    if directory is None:
-        directory = get_temp_dir()
-
-    try:
-        # Remove files older than 1 day
-        now = datetime.now().timestamp()
-        count = 0
-
-        for item in Path(directory).glob("**/*"):
-            if item.is_file():
-                file_age = now - item.stat().st_mtime
-                if file_age > 86400:  # 24 hours in seconds
-                    try:
-                        item.unlink()
-                        count += 1
-                    except Exception as e:
-                        log_warning(logger, f"Could not delete {item}: {e}")
-
-        # Remove empty directories
-        for root, dirs, files in os.walk(directory, topdown=False):
-            for dir_name in dirs:
-                dir_path = Path(root) / dir_name
-                try:
-                    if not any(dir_path.iterdir()):
-                        dir_path.rmdir()
-                except Exception as e:
-                    log_warning(logger, f"Could not remove directory {dir_path}: {e}")
-
-        log_info(logger, f"Cleaned up {count} temporary files")
-        return count
-    except Exception as e:
-        log_error(logger, f"Failed to clean up temporary files: {e}")
-        return 0
-
-def copy_file_safely(source_path, dest_path, retries=3, wait_time=1.0):
-    """
-    Copy a file with retry mechanism for cloud storage issues.
-
-    Args:
-        source_path: Path to source file
-        dest_path: Path to destination file
-        retries: Number of retry attempts
-        wait_time: Time to wait between retries in seconds
-
-    Returns:
-        bool: True if successful, False otherwise
-    """
-    source_path = Path(source_path)
-    dest_path = Path(dest_path)
-
-    if not source_path.exists():
-        log_error(logger, f"Source file does not exist: {source_path}")
-        return False
-
-    # Ensure parent directory exists
-    dest_path.parent.mkdir(parents=True, exist_ok=True)
-
-    for attempt in range(retries):
+def cleanup_temp_files():
+    """Clean up any temporary files created during processing."""
+    temp_dir = get_temp_dir()
+    if temp_dir.exists():
         try:
-            # For small files, direct copy should work
-            if source_path.stat().st_size < 10 * 1024 * 1024:  # Less than 10MB
-                shutil.copy2(source_path, dest_path)
-                log_info(logger, f"Copied {source_path} to {dest_path}")
-                return True
+            shutil.rmtree(temp_dir)
+        except Exception:
+            # Ignore errors when cleaning up temp files
+            pass
 
-            # For larger files, use chunk-by-chunk copy
-            with open(source_path, 'rb') as src, open(dest_path, 'wb') as dst:
-                chunk_size = 1024 * 1024  # 1MB chunks
-                while True:
-                    chunk = src.read(chunk_size)
-                    if not chunk:
-                        break
-                    dst.write(chunk)
+def ensure_folders():
+    """Ensure all required folders exist."""
+    # Import here to avoid circular imports
+    from config import OUTPUT_DIR, PDF_TXT_DIR
+    
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    PDF_TXT_DIR.mkdir(exist_ok=True)
+    
+    temp_dir = get_temp_dir()
+    temp_dir.mkdir(exist_ok=True)
 
-            log_info(logger, f"Copied {source_path} to {dest_path} in chunks")
-            return True
-
-        except Exception as e:
-            log_warning(logger, f"Copy attempt {attempt+1}/{retries} failed: {e}")
-            time.sleep(wait_time)
-
-    log_error(logger, f"Failed to copy {source_path} to {dest_path} after {retries} attempts")
-    return False
+def is_file_locked(filepath):
+    """
+    Check if a file is locked by another process.
+    
+    Args:
+        filepath: Path to the file to check
+        
+    Returns:
+        bool: True if the file is locked, False otherwise
+    """
+    if not Path(filepath).exists():
+        return False
+        
+    try:
+        # Try to open the file in read and write mode
+        with open(filepath, 'r+b') as f:
+            # Try to lock the file exclusively to see if it's locked by another process
+            # This is a Windows-specific solution, but it will work for our needs
+            try:
+                # Using the msvcrt module for Windows only
+                if platform.system() == 'Windows':
+                    import msvcrt
+                    msvcrt.locking(f.fileno(), msvcrt.LK_NBRLCK, 1)
+                    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    # On Unix systems, try to use fcntl
+                    try:
+                        import fcntl
+                        fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                    except ImportError:
+                        # If fcntl is not available, just try to write to the file
+                        current_position = f.tell()
+                        f.seek(0, os.SEEK_END)
+                        f.seek(current_position)
+                return False  # If we got this far, the file is not locked
+            except (IOError, PermissionError):
+                return True  # File is locked
+    except (IOError, PermissionError):
+        return True  # Cannot open the file, assume it's locked
 
 def open_file(file_path):
     """
-    Open a file with the default system application.
-
+    Open a file with the default application for its type.
+    
     Args:
         file_path: Path to the file to open
-
-    Returns:
-        bool: True if successful, False otherwise
     """
+    file_path = str(file_path)
     try:
-        file_path = Path(file_path)
-        if not file_path.exists():
-            log_error(logger, f"File does not exist: {file_path}")
-            return False
-
-        import sys
-        import subprocess
-
-        if sys.platform == 'win32':
+        if platform.system() == 'Windows':
             os.startfile(file_path)
-            log_info(logger, f"Opened {file_path} with default Windows application")
-        elif sys.platform == 'darwin':  # macOS
-            subprocess.run(['open', str(file_path)], check=True)
-            log_info(logger, f"Opened {file_path} with default macOS application")
-        else:  # Linux
-            subprocess.run(['xdg-open', str(file_path)], check=True)
-            log_info(logger, f"Opened {file_path} with default Linux application")
-
-        return True
-
+        elif platform.system() == 'Darwin':  # macOS
+            subprocess.run(['open', file_path], check=True)
+        else:  # Linux and other Unix-like
+            subprocess.run(['xdg-open', file_path], check=True)
     except Exception as e:
-        log_error(logger, f"Failed to open {file_path}: {e}")
-        return False
-# ... (all other functions remain the same) ...
+        print(f"Failed to open file: {e}")
 
-# --- NEW UTILITY FUNCTION ---
-def is_file_locked(filepath: Path) -> bool:
-    """
-    Checks if a file is locked by another process by trying to open it for appending.
-    """
-    if not filepath.exists():
-        return False # File doesn't exist, so it can't be locked
-
-    try:
-        # Try to open the file in append mode. If it's locked, this will fail.
-        with open(filepath, 'a') as f:
-            pass # We don't need to do anything, just successfully open and close it.
-    except (IOError, PermissionError):
-        # This exception means the file is locked by another process (like Excel).
-        log_warning(logger, f"File lock check failed. File is likely open: {filepath}")
-        return True
-
-    return False
+def get_file_extension(filename):
+    """Returns the file extension in lowercase, e.g., '.pdf'."""
+    if not filename or not isinstance(filename, str):
+        return ""
+    return os.path.splitext(filename)[1].lower()

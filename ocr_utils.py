@@ -1,4 +1,5 @@
-# KYO QA ServiceNow OCR Utilities
+# ocr_utils.py
+# KYO QA ServiceNow OCR Utilities - Fixed for PyMuPDF compatibility
 import fitz # PyMuPDF
 import os
 from pathlib import Path
@@ -47,15 +48,15 @@ def init_tesseract():
 
 TESSERACT_AVAILABLE = init_tesseract()
 
-# --- NEW HELPER FUNCTION ---
 def _is_ocr_needed(pdf_path: Path | str) -> bool:
     """
     Pre-checks a PDF to see if it's image-based and likely requires OCR.
     It does this by checking the amount of extractable text.
     """
     try:
-        with fitz.open(pdf_path) as doc:
-            if not doc.is_pdf or doc.is_encrypted:
+        # FIXED: Use simple fitz.open() without password parameter
+        with fitz.open(str(pdf_path)) as doc:
+            if not doc.is_pdf:
                 return False
 
             # Check the total text length of the document.
@@ -74,7 +75,9 @@ def extract_text_from_pdf(pdf_path: Path | str) -> str:
     try:
         pdf_path = Path(pdf_path)
         text = ""
-        with fitz.open(pdf_path) as doc:
+        
+        # FIXED: Use simple fitz.open() without password parameter
+        with fitz.open(str(pdf_path)) as doc:
             text = "".join(page.get_text() for page in doc)
 
         # If text is found and OCR is not explicitly needed, return it.
@@ -105,16 +108,21 @@ def extract_text_with_ocr(pdf_path: Path | str) -> str:
         import io
 
         all_text = []
-        with fitz.open(pdf_path) as doc:
+        # FIXED: Use simple fitz.open() without password parameter
+        with fitz.open(str(pdf_path)) as doc:
             for page_num, page in enumerate(doc):
-                # Render the page at a higher resolution for better OCR accuracy
-                pix = page.get_pixmap(dpi=300)
-                img = Image.open(io.BytesIO(pix.tobytes("png")))
+                try:
+                    # Render the page at a higher resolution for better OCR accuracy
+                    pix = page.get_pixmap(dpi=300)
+                    img = Image.open(io.BytesIO(pix.tobytes("png")))
 
-                # Use Tesseract to do OCR on the image
-                page_text = pytesseract.image_to_string(img)
-                all_text.append(page_text)
-                log_info(logger, f"OCR processed page {page_num+1} of {pdf_path.name}")
+                    # Use Tesseract to do OCR on the image
+                    page_text = pytesseract.image_to_string(img)
+                    all_text.append(page_text)
+                    log_info(logger, f"OCR processed page {page_num+1} of {pdf_path.name}")
+                except Exception as e:
+                    log_warning(logger, f"OCR failed for page {page_num+1} in {pdf_path.name}: {e}")
+                    continue
 
         result = "\n\n".join(all_text)
         log_info(logger, f"OCR extraction complete for {pdf_path.name}: {len(result)} chars")
@@ -126,7 +134,8 @@ def extract_text_with_ocr(pdf_path: Path | str) -> str:
 def get_pdf_metadata(pdf_path: Path | str) -> dict:
     """Extract metadata from a PDF file."""
     try:
-        with fitz.open(pdf_path) as doc:
+        # FIXED: Use simple fitz.open() without password parameter
+        with fitz.open(str(pdf_path)) as doc:
             metadata = doc.metadata
             page_count = len(doc)
 

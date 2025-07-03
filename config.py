@@ -1,82 +1,42 @@
 # config.py
 from pathlib import Path
 
-# --- DIRECTORY CONFIGURATION ---
+# Application directories
 BASE_DIR = Path(__file__).parent
 OUTPUT_DIR = BASE_DIR / "output"
-LOGS_DIR = BASE_DIR / "logs"
-PDF_TXT_DIR = BASE_DIR / "PDF_TXT"
-TESSERACT_DIR = BASE_DIR / "tesseract"
+PDF_TXT_DIR = BASE_DIR / "review_files"
 
-# --- BRANDING AND UI ---
+# Column name for models/metadata in Excel sheet
+# This is the column where model information will be stored
+# Change this to match an existing column name in your Excel file
+# Common options: "Models", "Applicable Models", "Device Models", "Metadata"
+META_COLUMN_NAME = "Models"  # Changed from "Applicable Models/Metadata"
+
+# Brand colors
 BRAND_COLORS = {
-    "kyocera_red": "#E30613",
-    "kyocera_black": "#231F20",
-    "background": "#FFFFFF",
-    "frame_background": "#F5F5F5",
-    "header_text": "#000000",
-    "accent_blue": "#0A9BCD",
-    "success_green": "#00B176",
-    "warning_yellow": "#F5B400",
+    # Primary colors
+    "background": "#F9F9F9",
+    "frame_background": "#F2F2F2",
+    "kyocera_red": "#CC0033",
+    "kyocera_black": "#333333",
+    
+    # Text colors
+    "header_text": "#FFFFFF",
+    "body_text": "#444444",
+    
+    # Accent colors
+    "accent_blue": "#0078D7",
+    "accent_grey": "#999999",
+    
+    # Status colors
+    "success_green": "#28A745",
+    "warning_yellow": "#FFC107",
+    "error_red": "#DC3545",
 }
 
-# --- Exclusion list for unwanted patterns ---
-EXCLUSION_PATTERNS = [
-    "CVE-",
-    "CWE-",
-    "TK-",
-]
-
-# --- DATA HARVESTING CONFIGURATION ---
-MODEL_PATTERNS = [
-    # Pattern for major model lines like TASKalfa and ECOSYS
-    r'\bTASKalfa\s*[a-zA-Z0-9-]+\b',
-    r'\bECOSYS\s*[a-zA-Z0-9-]+\b',
-
-    # Whitelist pattern for known accessory prefixes
-    r'\b(PF|DF|MK|AK|DP|BF|JS)-\d+[\w-]*\b',
-]
-
-QA_NUMBER_PATTERNS = [
-    r'\bQA[-_]?[\w-]+',
-    r'\bSB[-_]?[\w-]+',
-    r'\bE\d{4}-[A-Z0-9-]+',
-]
-# REQUIRES USER CONSENT: Suggested regex improvement below
-# QA_NUMBER_PATTERNS could include digits-only codes like r'\bQA\d{5,}\b'
-
-SHORT_QA_PATTERN = r'(E\d{4,}|\d{5,})'
-
-DATE_PATTERNS = [
-    r'(?i)(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},\s+\d{4}',
-    r'\d{1,2}/\d{1,2}/\d{4}',
-    r'\d{4}-\d{2}-\d{2}',
-]
-
-SUBJECT_PATTERNS = [
-    r'(?i)Subject\s*:\s*(.*)',
-    r'(?i)Title\s*:\s*(.*)',
-    r'SUBJECT\s*–\s*(.*)',
-]
-
-APP_SOFTWARE_PATTERNS = [
-    r'\bKYOCERA\s*Net\s*Viewer\b',
-    r'\bCommand\s*Center\s*RX\b',
-]
-
-AUTHOR_PATTERNS = [
-    r'(?i)Author\s*:\s*(.*)'
-]
-UNWANTED_AUTHORS = [
-    "Knowledge Import"
-]
-
-# --- STANDARDIZATION RULES ---
-STANDARDIZATION_RULES = {
-    "TASKalfa-": "TASKalfa ",
-    "ECOSYS-": "ECOSYS ",
+# Default processing options
+DEFAULT_OPTIONS = {
+    "use_ocr": True,
+    "auto_open_result": True,
+    "cleanup_temp": True,
 }
-
-# --- EXCEL GENERATION ---
-META_COLUMN_NAME = "Meta"
-

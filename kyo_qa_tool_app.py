@@ -1,4 +1,5 @@
 # kyo_qa_tool_app.py
+# Fixed version based on original v24.0.6 structure
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
@@ -35,7 +36,7 @@ class KyoQAToolApp(tk.Tk):
         self.progress_value = tk.DoubleVar(value=0)
         self.time_remaining_var = tk.StringVar(value="")
         
-        # --- NEW: Counters for the summary ---
+        # --- Counters for the summary ---
         self.count_pass = tk.IntVar(value=0)
         self.count_fail = tk.IntVar(value=0)
         self.count_review = tk.IntVar(value=0)
@@ -50,7 +51,6 @@ class KyoQAToolApp(tk.Tk):
         self.after(100, self.process_response_queue)
 
     def _setup_window(self):
-        # ... (unchanged) ...
         self.title(f"Kyocera QA ServiceNow Knowledge Tool v{VERSION}")
         self.geometry("1100x800")
         self.minsize(950, 700)
@@ -60,7 +60,6 @@ class KyoQAToolApp(tk.Tk):
         self.rowconfigure(1, weight=1)
 
     def _setup_styles(self):
-        # ... (unchanged) ...
         style = ttk.Style(self)
         style.theme_use("clam")
         style.configure("TFrame", background=BRAND_COLORS["background"])
@@ -76,7 +75,7 @@ class KyoQAToolApp(tk.Tk):
         style.configure("Status.Header.TLabel", font=("Segoe UI", 9, "bold"), background=BRAND_COLORS["frame_background"])
         style.configure("Dark.TFrame", background=BRAND_COLORS["frame_background"])
         style.configure("Blue.Horizontal.TProgressbar", troughcolor=BRAND_COLORS["frame_background"], background=BRAND_COLORS["accent_blue"], borderwidth=0)
-        # --- NEW: Styles for the LED status indicator ---
+        # Styles for the LED status indicator
         style.configure("LED.TLabel", font=("Segoe UI", 9, "bold"))
         style.configure("LEDRed.TLabel", foreground=BRAND_COLORS["kyocera_red"])
         style.configure("LEDYellow.TLabel", foreground=BRAND_COLORS["warning_yellow"])
@@ -84,7 +83,6 @@ class KyoQAToolApp(tk.Tk):
         style.configure("LEDBlue.TLabel", foreground=BRAND_COLORS["accent_blue"])
 
     def _create_widgets(self):
-        # ... (unchanged) ...
         header_frame = ttk.Frame(self, style="Header.TFrame", padding=(10, 10))
         header_frame.grid(row=0, column=0, sticky="ew")
         separator = ttk.Separator(header_frame, orient='horizontal')
@@ -101,9 +99,7 @@ class KyoQAToolApp(tk.Tk):
         self._create_process_controls(main_frame)
         self._create_status_and_log_section(main_frame)
 
-
     def _create_io_section(self, parent):
-        # ... (unchanged) ...
         io_frame = ttk.LabelFrame(parent, text="1. Select Inputs", padding=10)
         io_frame.grid(row=0, column=0, sticky="ew", pady=5)
         io_frame.columnconfigure(1, weight=1)
@@ -121,9 +117,7 @@ class KyoQAToolApp(tk.Tk):
         self.files_label.grid(row=2, column=1, sticky="w", padx=5)
         ttk.Button(io_frame, text="Select...", command=self.browse_files).grid(row=2, column=2, padx=5)
 
-
     def _create_process_controls(self, parent):
-        # ... (unchanged) ...
         controls_frame = ttk.LabelFrame(parent, text="2. Process & Manage", padding=10)
         controls_frame.grid(row=1, column=0, sticky="ew", pady=5)
         controls_frame.columnconfigure(0, weight=2)
@@ -143,13 +137,11 @@ class KyoQAToolApp(tk.Tk):
         self.exit_btn = ttk.Button(controls_frame, text="❌ Exit", command=self.on_closing)
         self.exit_btn.grid(row=0, column=4, padx=15, pady=5, sticky="e")
 
-
     def _create_status_and_log_section(self, parent):
-        # ... (This method is heavily modified) ...
         container = ttk.LabelFrame(parent, text="3. Live Status & Activity Log", padding=10)
         container.grid(row=2, column=0, sticky="nsew", pady=5)
         container.columnconfigure(0, weight=1)
-        container.rowconfigure(3, weight=1) # New row for the log
+        container.rowconfigure(3, weight=1)
 
         status_frame = ttk.Frame(container, style="Dark.TFrame", padding=10)
         status_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
@@ -167,7 +159,7 @@ class KyoQAToolApp(tk.Tk):
         self.progress_bar.grid(row=1, column=1, columnspan=2, sticky="ew", padx=5, pady=(10,5))
         ttk.Label(status_frame, textvariable=self.time_remaining_var, style="Status.TLabel", anchor="e").grid(row=1, column=3, sticky="e", padx=10)
         
-        # --- NEW: Summary Counts Frame ---
+        # Summary Counts Frame
         summary_frame = ttk.Frame(container, style="Dark.TFrame", padding=10)
         summary_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=(5,0))
         
@@ -182,7 +174,6 @@ class KyoQAToolApp(tk.Tk):
         
         review_frame = ttk.Frame(container, style="Dark.TFrame", padding=(5, 10))
         review_frame.grid(row=2, column=0, sticky="ew", padx=5, pady=(5,0))
-        # ... (review_frame and log_text setup is the same)
         review_frame.columnconfigure(0, weight=1)
         ttk.Label(review_frame, text="Files Flagged for Review:", style="Status.Header.TLabel").pack(anchor="w")
         self.review_tree = ttk.Treeview(review_frame, columns=('filename', 'reason'), show='headings', height=3)
@@ -203,7 +194,6 @@ class KyoQAToolApp(tk.Tk):
         for tag, color_key in [("info", "accent_blue"), ("success", "success_green"), ("warning", "warning_yellow"), ("error", "kyocera_red")]:
             self.log_text.tag_configure(tag, foreground=BRAND_COLORS[color_key])
 
-
     def process_response_queue(self):
         try:
             while True:
@@ -213,7 +203,6 @@ class KyoQAToolApp(tk.Tk):
                 if msg_type == "status":
                     self.status_current_file.set(response.get("msg", "Idle"))
                     self.set_led_status(response.get("led"))
-                # --- NEW: Handler for incrementing summary counters ---
                 elif msg_type == "increment_counter":
                     counter_var = getattr(self, f"count_{response['counter']}", None)
                     if counter_var:
@@ -262,7 +251,6 @@ class KyoQAToolApp(tk.Tk):
         finally:
             self.after(100, self.process_response_queue)
     
-    # --- NEW: Helper method to set the color of the LED indicator ---
     def set_led_status(self, status: str):
         if not status:
             self.led_status_var.set("")
@@ -290,7 +278,7 @@ class KyoQAToolApp(tk.Tk):
             self.rerun_btn.config(state=tk.DISABLED)
             self.exit_btn.config(state=tk.DISABLED)
             self.open_result_btn.config(state=tk.DISABLED)
-            self.review_btn.config(state=tk.DISABLED) # Disable pattern manager during run
+            self.review_btn.config(state=tk.DISABLED)
             
             self.status_current_file.set("Initializing...")
             self.time_remaining_var.set("Calculating...")
@@ -300,7 +288,6 @@ class KyoQAToolApp(tk.Tk):
             self.review_tree.delete(*self.review_tree.get_children())
             self.result_file_path = None
     
-    # ... (the rest of the file is unchanged)
     def start_processing(self, job_request=None):
         if self.is_processing: return
         if not job_request:
